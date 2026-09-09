@@ -225,4 +225,4 @@ Some applications use multiple background processes. The app checks for a visibl
 
 License
 
-No license has been specified yet.
+This project is licensed under the MIT License.
