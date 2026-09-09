@@ -1,0 +1,194 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build installer and publish release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Read version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+
+          if ($tag -notmatch '^v(\d+)\.(\d+)\.(\d+)$') {
+              throw "Release tag must use vMAJOR.MINOR.PATCH, for example v1.1.0. Got: $tag"
+          }
+
+          $version = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+          $fileVersion = "$version.0"
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "file_version=$fileVersion" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Release version: $version"
+
+      - name: Restore
+        run: dotnet restore .\DiscordPresence.csproj
+
+      - name: Publish self-contained Windows x64 build
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $fileVersion = "${{ steps.version.outputs.file_version }}"
+
+          dotnet publish .\DiscordPresence.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            --no-restore `
+            -p:Version=$version `
+            -p:AssemblyVersion=$fileVersion `
+            -p:FileVersion=$fileVersion `
+            -p:InformationalVersion=$version
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "dotnet publish failed."
+          }
+
+      - name: Apply release version to Inno Setup script
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $fileVersion = "${{ steps.version.outputs.file_version }}"
+          $issPath = ".\installer\DiscordPresence.iss"
+
+          $content = Get-Content $issPath -Raw
+
+          $content = [regex]::Replace(
+              $content,
+              '#define MyAppVersion "[^"]+"',
+              "#define MyAppVersion `"$version`""
+          )
+
+          $content = [regex]::Replace(
+              $content,
+              'VersionInfoVersion=\d+\.\d+\.\d+\.\d+',
+              "VersionInfoVersion=$fileVersion"
+          )
+
+          Set-Content $issPath $content -Encoding UTF8
+
+      - name: Locate or install Inno Setup
+        id: inno
+        shell: pwsh
+        run: |
+          function Find-Iscc {
+              return @(
+                  "$env:ProgramFiles\Inno Setup 7\ISCC.exe"
+                  "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe"
+                  "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+                  "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+              ) | Where-Object {
+                  $_ -and (Test-Path $_)
+              } | Select-Object -First 1
+          }
+
+          $iscc = Find-Iscc
+
+          if (-not $iscc) {
+              Write-Host "Inno Setup not found. Installing with Chocolatey..."
+              choco install innosetup -y --no-progress
+
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Could not install Inno Setup."
+              }
+
+              $iscc = Find-Iscc
+          }
+
+          if (-not $iscc) {
+              throw "ISCC.exe was not found after installation."
+          }
+
+          "path=$iscc" >> $env:GITHUB_OUTPUT
+          Write-Host "Using: $iscc"
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${{ steps.inno.outputs.path }}"
+
+          if (Test-Path .\dist) {
+              Remove-Item .\dist -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Path .\dist -Force | Out-Null
+
+          & $iscc .\installer\DiscordPresence.iss
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Inno Setup compilation failed."
+          }
+
+          $installer = ".\dist\DiscordPresence-Setup-${{ steps.version.outputs.version }}.exe"
+
+          if (-not (Test-Path $installer)) {
+              throw "Expected installer not found: $installer"
+          }
+
+      - name: Generate SHA-256 checksum
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $installer = ".\dist\DiscordPresence-Setup-$version.exe"
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+
+          "$hash  DiscordPresence-Setup-$version.exe" |
+              Set-Content .\dist\SHA256SUMS.txt -Encoding ASCII
+
+          Get-Content .\dist\SHA256SUMS.txt
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiscordPresence-${{ steps.version.outputs.version }}-win-x64
+          path: |
+            dist/DiscordPresence-Setup-${{ steps.version.outputs.version }}.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = "${{ steps.version.outputs.version }}"
+          $installer = ".\dist\DiscordPresence-Setup-$version.exe"
+          $checksum = ".\dist\SHA256SUMS.txt"
+
+          gh release view $tag *> $null
+
+          if ($LASTEXITCODE -eq 0) {
+              Write-Host "Release already exists. Replacing assets..."
+              gh release upload $tag $installer $checksum --clobber
+          }
+          else {
+              Write-Host "Creating release $tag..."
+              gh release create $tag $installer $checksum `
+                  --title "Discord Presence $tag" `
+                  --generate-notes `
+                  --verify-tag
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "GitHub Release creation/upload failed."
+          }
