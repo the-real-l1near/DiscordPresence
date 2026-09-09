@@ -1,8 +1,9 @@
-name: App support request
-description: Request support for a new desktop application
+name: "App support request"
+description: "Request support for a new desktop application"
 title: "[App Request] "
 labels:
-  - app-request
+  - "app-request"
+
 body:
   - type: markdown
     attributes:
@@ -15,38 +16,43 @@ body:
   - type: input
     id: app-name
     attributes:
-      label: Application name
-      description: Official application name.
-      placeholder: Example: Visual Studio
+      label: "Application name"
+      description: "Official application name."
+      placeholder: "Example: Visual Studio"
     validations:
       required: true
 
   - type: input
     id: website
     attributes:
-      label: Official website
-      description: Link to the application's official website or repository.
-      placeholder: https://example.com
+      label: "Official website"
+      description: "Link to the application's official website or repository."
+      placeholder: "https://example.com"
     validations:
       required: false
 
   - type: input
     id: process-name
     attributes:
-      label: Windows process name
+      label: "Windows process name"
       description: |
         The executable/process name shown in Task Manager.
+
         Do not include the full local path.
-      placeholder: Example: devenv
+
+        Example:
+        `devenv.exe` → enter `devenv`
+      placeholder: "Example: devenv"
     validations:
       required: true
 
   - type: textarea
     id: window-titles
     attributes:
-      label: Example window titles
+      label: "Example window titles"
       description: |
         Paste 2-5 real window titles from the application.
+
         Include examples from different projects/workspaces if possible.
       placeholder: |
         ProjectOne - Visual Studio
@@ -57,9 +63,10 @@ body:
   - type: textarea
     id: project-detection
     attributes:
-      label: Project / workspace detection
+      label: "Project / workspace detection"
       description: |
         Explain which part of the window title represents the project/workspace name.
+
         If there is no useful project name, say so.
       placeholder: |
         The project name appears before " - Visual Studio".
@@ -69,9 +76,9 @@ body:
   - type: input
     id: display-name
     attributes:
-      label: Preferred Discord display name
-      description: Optional. Leave blank to use the official application name.
-      placeholder: Visual Studio
+      label: "Preferred Discord display name"
+      description: "Optional. Leave blank to use the official application name."
+      placeholder: "Example: Visual Studio"
     validations:
       required: false
 
@@ -83,6 +90,7 @@ body:
         If you provide an icon or logo source, please use an official source when possible.
 
         Preferred asset:
+
         - PNG
         - Square (1:1)
         - 512x512 or larger preferred
@@ -94,39 +102,55 @@ body:
         - Do not upscale a tiny source image just to meet the preferred resolution
 
         You do **not** need to prepare the final Discord asset yourself.
-        An official source URL is enough; the maintainer can crop/resize it before upload.
+
+        An official source URL is enough. The maintainer can crop or resize the image before upload.
 
   - type: textarea
     id: icon-source
     attributes:
-      label: Official icon / logo source
+      label: "Official icon / logo source"
       description: |
-        Provide a link to an official icon/logo source, press kit, repository asset,
-        or product page if available.
+        Provide a link to an official icon/logo source if available.
+
+        Good sources include:
+
+        - Official website
+        - Official press kit
+        - Official GitHub repository
+        - Official product page
 
         If you attach an image, please mention where it came from.
       placeholder: |
+        Example:
         https://example.com/press-kit
+
         or
-        Official repository asset: https://github.com/...
+
+        Official repository asset:
+        https://github.com/...
     validations:
       required: false
 
   - type: input
     id: suggested-asset-key
     attributes:
-      label: Suggested Discord asset key
+      label: "Suggested Discord asset key"
       description: |
-        Optional. Lowercase, no spaces, short, and stable across app versions.
+        Optional.
+
+        Preferred format:
+        lowercase, no spaces, short, descriptive, and stable across application versions.
+
         The maintainer may change this before release.
-      placeholder: Example: visualstudio
+      placeholder: "Example: visualstudio"
     validations:
       required: false
 
   - type: dropdown
     id: tested
     attributes:
-      label: Can you test a development build?
+      label: "Can you test a development build?"
+      description: "Let us know whether you can help verify support before release."
       options:
         - "Yes"
         - "No"
@@ -136,19 +160,22 @@ body:
   - type: textarea
     id: notes
     attributes:
-      label: Additional notes
-      description: Anything else that may help with detection or Rich Presence behavior.
+      label: "Additional notes"
+      description: "Anything else that may help with detection or Rich Presence behavior."
+      placeholder: "Optional additional information."
     validations:
       required: false
 
   - type: checkboxes
     id: checklist
     attributes:
-      label: Checklist
+      label: "Checklist"
       options:
-        - label: I checked existing issues and this app has not already been requested.
+        - label: "I checked existing issues and this application has not already been requested."
           required: true
-        - label: I provided the actual Windows process name and example window titles.
+
+        - label: "I provided the actual Windows process name and real window-title examples."
           required: true
-        - label: Any icon/logo source I provided is from an official or clearly identified source.
+
+        - label: "Any icon/logo source I provided is official or clearly identified."
           required: false
