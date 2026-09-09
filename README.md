@@ -4,6 +4,8 @@ A small Windows app that automatically updates your Discord Rich Presence based 
 
 It detects supported apps and project names, keeps one continuous work-session timer while you switch between tools, and falls back to an Idle presence when no supported application is running.
 
+[![Request App Support](https://img.shields.io/badge/Request-App%20Support-5865F2?logo=discord&logoColor=white)](https://github.com/the-real-l1near/DiscordPresence/issues/new?template=app-request.yml)
+
 ## Features
 
 - Automatic foreground application detection
