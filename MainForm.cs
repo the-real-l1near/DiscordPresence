@@ -1,4 +1,5 @@
 using DiscordRPC;
+using System.Diagnostics;
 
 namespace DiscordPresence;
 
@@ -65,24 +66,32 @@ public sealed class MainForm : Form
      * Một work session bắt đầu khi:
      *
      * Idle
-     * → mở / chuyển vào một app supported
+     * → mở / chuyển vào app được hỗ trợ.
      *
      * Timer KHÔNG reset khi:
      *
      * VS Code → Blender
      * Blender → Unreal
      * Unreal → IntelliJ
-     * project A → project B
+     * Project A → Project B
      *
      * Timer chỉ reset khi:
      *
-     * tất cả app supported đã đóng
+     * không còn app được hỗ trợ nào chạy
      * → Idle
-     * → sau đó bắt đầu session mới
+     * → bắt đầu session mới.
      */
     private DateTime? _sessionStartTime;
 
     private bool _isIdle = true;
+
+    /*
+     * Tránh gửi Idle presence mỗi giây.
+     *
+     * Đồng thời cho phép gửi Idle lần đầu
+     * ngay cả khi _isIdle mặc định = true.
+     */
+    private bool _idlePresenceSent;
 
     // =========================================================
     // Settings
@@ -137,6 +146,7 @@ public sealed class MainForm : Form
 
         Text =
             "Custom Discord Presence";
+
         var appIcon =
             System.Drawing.Icon.ExtractAssociatedIcon(
                 Application.ExecutablePath
@@ -144,7 +154,8 @@ public sealed class MainForm : Form
 
         if (appIcon is not null)
         {
-            Icon = appIcon;
+            Icon =
+                appIcon;
         }
 
         Width = 540;
@@ -417,6 +428,17 @@ public sealed class MainForm : Form
         );
 
         // =====================================================
+        // Discord RPC
+        //
+        // Khởi tạo TRƯỚC các UI event sử dụng client.
+        // =====================================================
+
+        _discordClient =
+            new DiscordRpcClient(
+                DiscordApplicationId
+            );
+
+        // =====================================================
         // UI events
         // =====================================================
 
@@ -463,7 +485,7 @@ public sealed class MainForm : Form
                 return;
             }
 
-            // Idle không có timer.
+            // Idle luôn không có timer.
             if (_isIdle)
             {
                 _discordClient.UpdateClearTime();
@@ -478,7 +500,6 @@ public sealed class MainForm : Form
 
             if (_elapsedTimeCheckBox.Checked)
             {
-                // Nếu vì lý do nào đó session chưa có start time.
                 _sessionStartTime ??=
                     DateTime.UtcNow;
 
@@ -535,26 +556,44 @@ public sealed class MainForm : Form
                     MessageBoxIcon.Error
                 );
 
-                // Restore registry state.
                 _startWithWindowsCheckBox.Checked =
                     StartupService.IsEnabled();
             }
         };
 
         // =====================================================
-        // Discord RPC
+        // Discord events
         // =====================================================
-
-        _discordClient =
-            new DiscordRpcClient(
-                DiscordApplicationId
-            );
 
         _discordClient.OnReady += (_, e) =>
         {
             SetStatus(
                 $"Discord: connected as {e.User.Username}"
             );
+
+            /*
+             * Nếu Discord vừa mở lại / reconnect,
+             * publish lại state hiện tại.
+             */
+            if (!IsHandleCreated)
+            {
+                return;
+            }
+
+            BeginInvoke(() =>
+            {
+                if (_isIdle)
+                {
+                    _idlePresenceSent =
+                        false;
+
+                    SetIdlePresence();
+                }
+                else if (_currentProfile is not null)
+                {
+                    SetPresence();
+                }
+            });
         };
 
         _discordClient.OnConnectionEstablished += (_, _) =>
@@ -663,9 +702,8 @@ public sealed class MainForm : Form
                     "Custom Discord Presence",
 
                 Icon =
-                    System.Drawing.Icon.ExtractAssociatedIcon(
-                        Application.ExecutablePath
-                    ) ?? SystemIcons.Application,
+                    appIcon ??
+                    SystemIcons.Application,
 
                 Visible =
                     true,
@@ -704,10 +742,10 @@ public sealed class MainForm : Form
     private void DetectActiveApp()
     {
         /*
-         * Trước tiên check toàn bộ process.
+         * Không còn cửa sổ app supported nào:
          *
-         * Nếu không còn bất kỳ app nào trong mapping chạy
-         * thì work session kết thúc và chuyển sang Idle.
+         * → kết thúc work session
+         * → chuyển Idle.
          */
         if (!HasSupportedAppRunning())
         {
@@ -730,17 +768,17 @@ public sealed class MainForm : Form
         }
 
         /*
-         * Foreground là app không hỗ trợ:
+         * Foreground là:
          *
          * Chrome
          * Discord
          * Explorer
          * Spotify
-         * etc.
+         * ...
          *
-         * Nhưng vẫn còn editor/app supported chạy.
+         * nhưng editor vẫn chạy:
          *
-         * → giữ nguyên Presence gần nhất.
+         * → giữ presence gần nhất
          * → timer vẫn tiếp tục.
          */
         if (!AppProfiles.TryGetValue(
@@ -789,7 +827,7 @@ public sealed class MainForm : Form
         }
 
         // -----------------------------------------------------
-        // Leaving Idle → start new work session
+        // Leaving Idle
         // -----------------------------------------------------
 
         if (_isIdle)
@@ -797,22 +835,19 @@ public sealed class MainForm : Form
             _isIdle =
                 false;
 
+            _idlePresenceSent =
+                false;
+
+            // New work session.
             _sessionStartTime =
                 DateTime.UtcNow;
         }
 
         /*
-         * IMPORTANT:
+         * KHÔNG reset timer ở đây.
          *
-         * KHÔNG reset _sessionStartTime ở đây.
-         *
-         * Vì:
-         *
-         * VS Code → Blender
-         * Blender → Unreal
-         * Unreal → IntelliJ
-         *
-         * vẫn thuộc cùng một work session.
+         * Code → Blender → Unreal → IntelliJ
+         * vẫn thuộc cùng một session.
          */
 
         // -----------------------------------------------------
@@ -851,18 +886,40 @@ public sealed class MainForm : Form
 
     private static bool HasSupportedAppRunning()
     {
+        Process[] processes;
+
         try
         {
-            var processes =
-                System.Diagnostics.Process.GetProcesses();
+            processes =
+                Process.GetProcesses();
+        }
+        catch
+        {
+            return false;
+        }
 
+        try
+        {
             foreach (var process in processes)
             {
                 try
                 {
-                    if (AppProfiles.ContainsKey(
+                    if (!AppProfiles.ContainsKey(
                         process.ProcessName
                     ))
+                    {
+                        continue;
+                    }
+
+                    /*
+                     * Chỉ tính app đang hoạt động
+                     * nếu còn top-level window.
+                     *
+                     * Tránh Code.exe helper/background
+                     * giữ app khỏi vào Idle.
+                     */
+                    if (process.MainWindowHandle !=
+                        IntPtr.Zero)
                     {
                         return true;
                     }
@@ -870,25 +927,21 @@ public sealed class MainForm : Form
                 catch
                 {
                     /*
-                     * Process có thể terminate
-                     * ngay lúc đang đọc.
+                     * Process có thể đóng
+                     * đúng lúc đang kiểm tra.
                      */
                 }
-                finally
-                {
-                    process.Dispose();
-                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            foreach (var process in processes)
+            {
+                process.Dispose();
             }
         }
-        catch
-        {
-            /*
-             * Nếu Windows process enumeration lỗi,
-             * không crash app.
-             */
-        }
-
-        return false;
     }
 
     // =========================================================
@@ -906,7 +959,14 @@ public sealed class MainForm : Form
             return;
         }
 
-        if (_currentProfile is null)
+        /*
+         * Copy field ra local để nullable analysis
+         * biết chắc profile không null.
+         */
+        var profile =
+            _currentProfile;
+
+        if (profile is null)
         {
             SetStatus(
                 "Chưa phát hiện ứng dụng được hỗ trợ."
@@ -915,8 +975,11 @@ public sealed class MainForm : Form
             return;
         }
 
+        var projectName =
+            _currentProjectName;
+
         // -----------------------------------------------------
-        // Session time
+        // Work session time
         // -----------------------------------------------------
 
         _sessionStartTime ??=
@@ -945,19 +1008,17 @@ public sealed class MainForm : Form
                 Type =
                     ActivityType.Playing,
 
-                // Example:
                 // Working on BasicRotor
                 Details =
-                    _currentProjectName is not null
-                        ? $"Working on {_currentProjectName}"
+                    projectName is not null
+                        ? $"Working on {projectName}"
                         : null,
 
-                // Example:
-                // Visual Studio Code
+                // Visual Studio Code / Blender / Unreal...
                 State =
-                    _currentProfile.DisplayName,
+                    profile.DisplayName,
 
-                // Same work-session timestamp.
+                // Same timer for complete work session.
                 Timestamps =
                     timestamps,
 
@@ -965,12 +1026,10 @@ public sealed class MainForm : Form
                     new Assets
                     {
                         LargeImageKey =
-                            _currentProfile
-                                .LargeImageKey,
+                            profile.LargeImageKey,
 
                         LargeImageText =
-                            _currentProfile
-                                .LargeImageText
+                            profile.LargeImageText
                     }
             };
 
@@ -978,7 +1037,7 @@ public sealed class MainForm : Form
             presence
         );
 
-        // Explicit timestamp removal.
+        // Explicitly remove timer if disabled.
         if (!_elapsedTimeCheckBox.Checked)
         {
             _discordClient.UpdateClearTime();
@@ -986,8 +1045,8 @@ public sealed class MainForm : Form
 
         SetStatus(
             $"Presence updated: " +
-            $"{_currentProjectName} · " +
-            $"{_currentProfile.DisplayName}"
+            $"{projectName} · " +
+            $"{profile.DisplayName}"
         );
     }
 
@@ -998,11 +1057,11 @@ public sealed class MainForm : Form
     private void EnterIdle()
     {
         /*
-         * Đã Idle rồi.
-         *
-         * Không cần gửi presence lại mỗi giây.
+         * Đã gửi Idle rồi:
+         * không spam RPC mỗi giây.
          */
-        if (_isIdle)
+        if (_isIdle &&
+            _idlePresenceSent)
         {
             return;
         }
@@ -1073,11 +1132,14 @@ public sealed class MainForm : Form
                     null,
 
                 Assets =
-                new Assets
-                {
-                    LargeImageKey = "idle_v2",
-                    LargeImageText = "Idle"
-                }
+                    new Assets
+                    {
+                        LargeImageKey =
+                            "idle_v2",
+
+                        LargeImageText =
+                            "Idle"
+                    }
             };
 
         _discordClient.SetPresence(
@@ -1085,10 +1147,12 @@ public sealed class MainForm : Form
         );
 
         /*
-         * Explicitly remove any timestamp
-         * left by the previous work session.
+         * Clear timer của work session trước.
          */
         _discordClient.UpdateClearTime();
+
+        _idlePresenceSent =
+            true;
 
         SetStatus(
             "Idle · No supported app running"
