@@ -13,3 +13,26 @@ obj/
 # OS
 Thumbs.db
 Desktop.ini
+
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# Installer build output
+dist/
+installer/Output/
+
+# Inno Setup temporary / generated files
+*.iss.tmp
+
+# OS
+Thumbs.db
+Desktop.ini
