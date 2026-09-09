@@ -8,24 +8,53 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <!-- App icon -->
+    <!-- Application -->
+    <AssemblyName>DiscordPresence</AssemblyName>
+    <RootNamespace>DiscordPresence</RootNamespace>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+
+    <!-- Metadata -->
+    <AssemblyTitle>Discord Presence</AssemblyTitle>
+    <Product>Discord Presence</Product>
+    <Description>
+      Automatic Discord Rich Presence for supported desktop applications.
+    </Description>
+
+    <Company>YourName</Company>
+    <Authors>YourName</Authors>
+    <Copyright>
+      Copyright © 2026 YourName
+    </Copyright>
+
+    <!-- Version -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
 
     <!-- Publish -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
 
-    <!-- Không trim WinForms/RPC để tránh lỗi runtime -->
+    <!-- Include .NET runtime -->
+    <SelfContained>true</SelfContained>
+
+    <!-- Keep dependencies as separate files -->
+    <PublishSingleFile>false</PublishSingleFile>
+
+    <!-- Avoid trimming compatibility issues -->
     <PublishTrimmed>false</PublishTrimmed>
 
-    <!-- Không tạo file debug -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!-- Release -->
     <DebugType>None</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
+    <PackageReference
+      Include="DiscordRichPresence"
+      Version="1.6.1.70" />
   </ItemGroup>
 
 </Project>
