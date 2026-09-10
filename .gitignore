@@ -36,3 +36,7 @@ installer/Output/
 # OS
 Thumbs.db
 Desktop.ini
+
+# Discord Social SDK
+native/sdk/
+native/DiscordSocialBridge/build/

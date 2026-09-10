@@ -1,4 +1,3 @@
-using DiscordRPC;
 using System.Diagnostics;
 
 namespace DiscordPresence;
@@ -9,10 +8,7 @@ public sealed class MainForm : Form
     // Discord
     // =========================================================
 
-    private const string DiscordApplicationId =
-        "1547227043429613668";
-
-    private readonly DiscordRpcClient _discordClient;
+    private readonly DiscordSocialClient _discordClient;
 
     // =========================================================
     // Supported applications
@@ -45,7 +41,6 @@ public sealed class MainForm : Form
                 "IntelliJ IDEA"
             )
         };
-
     // =========================================================
     // Detection
     // =========================================================
@@ -57,30 +52,12 @@ public sealed class MainForm : Form
     private AppPresenceProfile? _currentProfile;
 
     private string? _currentProjectName;
+    private string? _currentRepositoryName;
 
     // =========================================================
     // Work session
     // =========================================================
 
-    /*
-     * Một work session bắt đầu khi:
-     *
-     * Idle
-     * → mở / chuyển vào app được hỗ trợ.
-     *
-     * Timer KHÔNG reset khi:
-     *
-     * VS Code → Blender
-     * Blender → Unreal
-     * Unreal → IntelliJ
-     * Project A → Project B
-     *
-     * Timer chỉ reset khi:
-     *
-     * không còn app được hỗ trợ nào chạy
-     * → Idle
-     * → bắt đầu session mới.
-     */
     private DateTime? _sessionStartTime;
 
     private bool _isIdle = true;
@@ -367,7 +344,7 @@ public sealed class MainForm : Form
             new Label
             {
                 Text =
-                    "Discord: connecting...",
+                    "Discord: initializing...",
 
                 Left = 20,
                 Top = 365,
@@ -428,15 +405,11 @@ public sealed class MainForm : Form
         );
 
         // =====================================================
-        // Discord RPC
-        //
-        // Khởi tạo TRƯỚC các UI event sử dụng client.
+        // Discord Social SDK
         // =====================================================
 
         _discordClient =
-            new DiscordRpcClient(
-                DiscordApplicationId
-            );
+            new DiscordSocialClient();
 
         // =====================================================
         // UI events
@@ -450,6 +423,9 @@ public sealed class MainForm : Form
         {
             if (_isIdle)
             {
+                _idlePresenceSent =
+                    false;
+
                 SetIdlePresence();
             }
             else
@@ -485,11 +461,11 @@ public sealed class MainForm : Form
                 return;
             }
 
-            // Idle luôn không có timer.
+            /*
+             * Idle không có timer.
+             */
             if (_isIdle)
             {
-                _discordClient.UpdateClearTime();
-
                 return;
             }
 
@@ -503,22 +479,25 @@ public sealed class MainForm : Form
                 _sessionStartTime ??=
                     DateTime.UtcNow;
 
-                _discordClient.UpdateStartTime(
-                    _sessionStartTime.Value
-                );
-
                 SetStatus(
                     "Elapsed time enabled."
                 );
             }
             else
             {
-                _discordClient.UpdateClearTime();
-
                 SetStatus(
                     "Elapsed time disabled."
                 );
             }
+
+            /*
+             * Social SDK không có UpdateStartTime /
+             * UpdateClearTime kiểu RPC cũ.
+             *
+             * Gửi lại toàn bộ Activity với hoặc
+             * không có timestamp.
+             */
+            SetPresence();
         };
 
         // -----------------------------------------------------
@@ -562,61 +541,24 @@ public sealed class MainForm : Form
         };
 
         // =====================================================
-        // Discord events
+        // Initialize Discord Social SDK
         // =====================================================
-
-        _discordClient.OnReady += (_, e) =>
-        {
-            SetStatus(
-                $"Discord: connected as {e.User.Username}"
-            );
-
-            /*
-             * Nếu Discord vừa mở lại / reconnect,
-             * publish lại state hiện tại.
-             */
-            if (!IsHandleCreated)
-            {
-                return;
-            }
-
-            BeginInvoke(() =>
-            {
-                if (_isIdle)
-                {
-                    _idlePresenceSent =
-                        false;
-
-                    SetIdlePresence();
-                }
-                else if (_currentProfile is not null)
-                {
-                    SetPresence();
-                }
-            });
-        };
-
-        _discordClient.OnConnectionEstablished += (_, _) =>
-        {
-            SetStatus(
-                "Discord: connected"
-            );
-        };
-
-        _discordClient.OnConnectionFailed += (_, _) =>
-        {
-            SetStatus(
-                "Discord: connection failed"
-            );
-        };
 
         var initialized =
             _discordClient.Initialize();
 
-        if (!initialized)
+        if (initialized)
         {
             SetStatus(
-                "Discord: could not initialize RPC"
+                "Discord Social SDK: initialized"
+            );
+
+            EnterIdle();
+        }
+        else
+        {
+            SetStatus(
+                "Discord Social SDK: initialization failed"
             );
         }
 
@@ -633,6 +575,12 @@ public sealed class MainForm : Form
 
         _detectionTimer.Tick += (_, _) =>
         {
+            /*
+             * Social SDK callbacks phải được pump
+             * định kỳ.
+             */
+            _discordClient.RunCallbacks();
+
             DetectActiveApp();
         };
 
@@ -811,6 +759,12 @@ public sealed class MainForm : Form
         projectName ??=
             "Unknown Project";
 
+        var repositoryName =
+            GitRepositoryDetector
+                .DetectRepositoryName(
+                    projectName
+                );
+
         var presenceKey =
             $"{activeApp.ProcessName}|{projectName}";
 
@@ -862,6 +816,9 @@ public sealed class MainForm : Form
 
         _currentProjectName =
             projectName;
+
+        _currentRepositoryName =
+            repositoryName;
 
         // -----------------------------------------------------
         // GUI
@@ -959,10 +916,6 @@ public sealed class MainForm : Form
             return;
         }
 
-        /*
-         * Copy field ra local để nullable analysis
-         * biết chắc profile không null.
-         */
         var profile =
             _currentProfile;
 
@@ -978,6 +931,9 @@ public sealed class MainForm : Form
         var projectName =
             _currentProjectName;
 
+        var repositoryName =
+            _currentRepositoryName;
+
         // -----------------------------------------------------
         // Work session time
         // -----------------------------------------------------
@@ -985,62 +941,60 @@ public sealed class MainForm : Form
         _sessionStartTime ??=
             DateTime.UtcNow;
 
-        Timestamps? timestamps =
+        DateTime? startTime =
             null;
 
         if (_elapsedTimeCheckBox.Checked)
         {
-            timestamps =
-                new Timestamps
-                {
-                    Start =
-                        _sessionStartTime.Value
-                };
+            startTime =
+                _sessionStartTime;
         }
 
         // -----------------------------------------------------
         // Presence
         // -----------------------------------------------------
 
-        var presence =
-            new RichPresence
-            {
-                Type =
-                    ActivityType.Playing,
+        var updated =
+            _discordClient.SetPresence(
+                /*
+                 * Social SDK cho phép đổi tên
+                 * activity động.
+                 *
+                 * Coding → Visual Studio Code
+                 * Coding → Blender
+                 * Coding → Unreal Engine
+                 * ...
+                 */
+                name:
+                    profile.DisplayName,
 
-                // Working on BasicRotor
-                Details =
+                details:
                     projectName is not null
                         ? $"Working on {projectName}"
                         : null,
 
-                // Visual Studio Code / Blender / Unreal...
-                State =
-                    profile.DisplayName,
+                state:
+                    repositoryName is not null
+                        ? $"Repo: {repositoryName}"
+                        : "Repo: Not detected",  
 
-                // Same timer for complete work session.
-                Timestamps =
-                    timestamps,
+                largeImage:
+                    profile.LargeImageKey,
 
-                Assets =
-                    new Assets
-                    {
-                        LargeImageKey =
-                            profile.LargeImageKey,
+                largeText:
+                    profile.LargeImageText,
 
-                        LargeImageText =
-                            profile.LargeImageText
-                    }
-            };
+                startTime:
+                    startTime
+            );
 
-        _discordClient.SetPresence(
-            presence
-        );
-
-        // Explicitly remove timer if disabled.
-        if (!_elapsedTimeCheckBox.Checked)
+        if (!updated)
         {
-            _discordClient.UpdateClearTime();
+            SetStatus(
+                "Could not update Discord presence."
+            );
+
+            return;
         }
 
         SetStatus(
@@ -1058,7 +1012,7 @@ public sealed class MainForm : Form
     {
         /*
          * Đã gửi Idle rồi:
-         * không spam RPC mỗi giây.
+         * không spam Discord mỗi giây.
          */
         if (_isIdle &&
             _idlePresenceSent)
@@ -1084,6 +1038,9 @@ public sealed class MainForm : Form
 
         _currentProjectName =
             null;
+
+        _currentRepositoryName =
+            null;   
 
         // -----------------------------------------------------
         // GUI
@@ -1116,40 +1073,35 @@ public sealed class MainForm : Form
             return;
         }
 
-        var idlePresence =
-            new RichPresence
-            {
-                Type =
-                    ActivityType.Playing,
-
-                Details =
+        var updated =
+            _discordClient.SetPresence(
+                name:
                     "Idle",
 
-                State =
-                    "Idling",
+                details:
+                    "Touching grass...",
 
-                Timestamps =
-                    null,
+                state:
+                    "...allegedly",
 
-                Assets =
-                    new Assets
-                    {
-                        LargeImageKey =
-                            "idle_v2",
+                largeImage:
+                    "idle_v2",
 
-                        LargeImageText =
-                            "Idle"
-                    }
-            };
+                largeText:
+                    "Idle",
 
-        _discordClient.SetPresence(
-            idlePresence
-        );
+                startTime:
+                    null
+            );
 
-        /*
-         * Clear timer của work session trước.
-         */
-        _discordClient.UpdateClearTime();
+        if (!updated)
+        {
+            SetStatus(
+                "Could not update Idle presence."
+            );
+
+            return;
+        }
 
         _idlePresenceSent =
             true;
@@ -1228,22 +1180,11 @@ public sealed class MainForm : Form
         object? sender,
         FormClosingEventArgs e)
     {
-        /*
-         * Tray → Exit.
-         *
-         * Không hỏi lại.
-         */
         if (_isExiting)
         {
             return;
         }
 
-        /*
-         * Chỉ intercept:
-         *
-         * X
-         * Alt + F4
-         */
         if (e.CloseReason !=
             CloseReason.UserClosing)
         {
@@ -1261,19 +1202,11 @@ public sealed class MainForm : Form
 
         switch (result)
         {
-            // -------------------------------------------------
-            // Minimize to tray
-            // -------------------------------------------------
-
             case DialogResult.Yes:
 
                 HideToTray();
 
                 break;
-
-            // -------------------------------------------------
-            // Exit
-            // -------------------------------------------------
 
             case DialogResult.No:
 
@@ -1283,10 +1216,6 @@ public sealed class MainForm : Form
                 Close();
 
                 break;
-
-            // -------------------------------------------------
-            // Cancel
-            // -------------------------------------------------
 
             case DialogResult.Cancel:
 
@@ -1334,11 +1263,6 @@ public sealed class MainForm : Form
         // -----------------------------------------------------
         // Discord
         // -----------------------------------------------------
-
-        if (_discordClient.IsInitialized)
-        {
-            _discordClient.ClearPresence();
-        }
 
         _discordClient.Dispose();
 

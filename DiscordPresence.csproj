@@ -55,4 +55,18 @@
       Version="1.6.1.70" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None
+      Include="native\DiscordSocialBridge\build\Release\DiscordSocialBridge.dll"
+      Link="DiscordSocialBridge.dll"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+
+    <None
+      Include="native\sdk\bin\discord_partner_sdk.dll"
+      Link="discord_partner_sdk.dll"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
