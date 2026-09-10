@@ -184,9 +184,9 @@ jobs:
           else {
               Write-Host "Creating release $tag..."
               gh release create $tag $installer $checksum `
-                  --title "Discord Presence $tag" `
-                  --generate-notes `
-                  --verify-tag
+                --title "Discord Presence $tag" `
+                --generate-notes `
+                --target "${{ github.sha }}"
           }
 
           if ($LASTEXITCODE -ne 0) {
