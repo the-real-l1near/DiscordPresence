@@ -38,5 +38,17 @@ Thumbs.db
 Desktop.ini
 
 # Discord Social SDK
-native/sdk/
+native/sdk/*
+
+!native/sdk/include/
+!native/sdk/include/cdiscord.h
+!native/sdk/include/discordpp.h
+
+!native/sdk/lib/
+!native/sdk/lib/discord_partner_sdk.lib
+
+!native/sdk/bin/
+!native/sdk/bin/discord_partner_sdk.dll
+
+# Native build output
 native/DiscordSocialBridge/build/

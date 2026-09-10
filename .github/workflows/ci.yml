@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
 
 permissions:
@@ -18,19 +20,109 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # -------------------------------------------------------
+      # Checkout
+      # -------------------------------------------------------
+
       - name: Checkout
         uses: actions/checkout@v4
+
+      # -------------------------------------------------------
+      # Setup .NET
+      # -------------------------------------------------------
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
 
+      # -------------------------------------------------------
+      # Restore
+      # -------------------------------------------------------
+
       - name: Restore
         run: dotnet restore .\DiscordPresence.csproj
 
+      # -------------------------------------------------------
+      # Build native Discord Social SDK bridge
+      # -------------------------------------------------------
+
+      - name: Build Discord Social SDK bridge
+        shell: pwsh
+        run: |
+          cmake `
+            -S .\native\DiscordSocialBridge `
+            -B .\native\DiscordSocialBridge\build `
+            -G "Visual Studio 17 2022" `
+            -A x64
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "CMake configure failed."
+          }
+
+          cmake --build `
+            .\native\DiscordSocialBridge\build `
+            --config Release
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Discord Social SDK bridge build failed."
+          }
+
+          $bridgePath =
+              ".\native\DiscordSocialBridge\build\Release\DiscordSocialBridge.dll"
+
+          if (-not (Test-Path $bridgePath)) {
+              throw "DiscordSocialBridge.dll was not generated."
+          }
+
+      # -------------------------------------------------------
+      # Build C# app
+      # -------------------------------------------------------
+
       - name: Build Release
-        run: dotnet build .\DiscordPresence.csproj -c Release --no-restore
+        run: >
+          dotnet build
+          .\DiscordPresence.csproj
+          -c Release
+          --no-restore
+
+      # -------------------------------------------------------
+      # Publish smoke test
+      # -------------------------------------------------------
 
       - name: Publish smoke test
-        run: dotnet publish .\DiscordPresence.csproj -c Release -r win-x64 --self-contained true --no-restore
+        run: >
+          dotnet publish
+          .\DiscordPresence.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          --no-restore
+
+      # -------------------------------------------------------
+      # Validate native runtime files
+      # -------------------------------------------------------
+
+      - name: Validate publish output
+        shell: pwsh
+        run: |
+          $publishDir =
+              ".\bin\Release\net10.0-windows\win-x64\publish"
+
+          $requiredFiles =
+              @(
+                  "DiscordPresence.exe"
+                  "DiscordSocialBridge.dll"
+                  "discord_partner_sdk.dll"
+              )
+
+          foreach ($file in $requiredFiles) {
+              $path =
+                  Join-Path $publishDir $file
+
+              if (-not (Test-Path $path)) {
+                  throw "Missing publish file: $file"
+              }
+          }
+
+          Write-Host "Publish output validated successfully."
