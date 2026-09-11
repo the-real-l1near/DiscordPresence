@@ -13,8 +13,6 @@ namespace
     std::unique_ptr<discordpp::Client> g_client;
     bool g_initialized = false;
 
-    bool g_justBecameReady = false;
-
     std::optional<std::string> ToOptionalString(
         const char* value)
     {
@@ -43,23 +41,6 @@ extern "C"
 
             g_client->SetApplicationId(
                 applicationId
-            );
-
-            g_client->SetStatusChangedCallback(
-                [](discordpp::Client::Status status,
-                discordpp::Client::Error error,
-                int32_t errorDetail)
-                {
-                    (void)error;
-                    (void)errorDetail;
-
-                    if (status ==
-                        discordpp::Client::Status::Ready)
-                    {
-                        g_justBecameReady =
-                            true;
-                    }
-                }
             );
 
             g_initialized = true;
@@ -206,27 +187,10 @@ extern "C"
         discordpp::RunCallbacks();
     }
 
-    bool DiscordSocial_ConsumeReadyEvent()
-    {
-        if (!g_justBecameReady)
-        {
-            return false;
-        }
-
-        g_justBecameReady =
-            false;
-
-        return true;
-    }
-
     void DiscordSocial_Shutdown()
     {
         g_client.reset();
 
-        g_initialized =
-            false;
-
-        g_justBecameReady =
-            false;
+        g_initialized = false;
     }
 }
