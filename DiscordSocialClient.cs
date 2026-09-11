@@ -4,15 +4,32 @@ namespace DiscordPresence;
 
 internal sealed class DiscordSocialClient : IDisposable
 {
+    // =========================================================
+    // Discord application
+    // =========================================================
+
     private const ulong ApplicationId =
         1547227043429613668UL;
 
+    // =========================================================
+    // State
+    // =========================================================
+
     private bool _initialized;
+
     private bool _disposed;
+
+    // =========================================================
+    // Properties
+    // =========================================================
 
     public bool IsInitialized =>
         _initialized &&
         !_disposed;
+
+    // =========================================================
+    // Initialize
+    // =========================================================
 
     public bool Initialize()
     {
@@ -22,7 +39,9 @@ internal sealed class DiscordSocialClient : IDisposable
         );
 
         if (_initialized)
+        {
             return true;
+        }
 
         _initialized =
             Native.DiscordSocial_Initialize(
@@ -32,6 +51,10 @@ internal sealed class DiscordSocialClient : IDisposable
         return _initialized;
     }
 
+    // =========================================================
+    // Reinitialize
+    // =========================================================
+
     public bool Reinitialize()
     {
         ObjectDisposedException.ThrowIf(
@@ -40,12 +63,11 @@ internal sealed class DiscordSocialClient : IDisposable
         );
 
         /*
-        * Discord desktop có thể đã bị đóng/restart.
-        *
-        * Client cũ có thể không còn usable cho
-        * local Rich Presence connection, nên tạo
-        * lại native client khi Discord xuất hiện.
-        */
+         * Client cũ có thể được tạo khi Discord chưa chạy
+         * hoặc đã mất local connection sau Discord restart.
+         *
+         * Tạo lại native client hoàn toàn.
+         */
         if (_initialized)
         {
             Native.DiscordSocial_Shutdown();
@@ -62,6 +84,48 @@ internal sealed class DiscordSocialClient : IDisposable
         return _initialized;
     }
 
+    // =========================================================
+    // Suspend
+    // =========================================================
+
+    public void Suspend()
+    {
+        ObjectDisposedException.ThrowIf(
+            _disposed,
+            this
+        );
+
+        if (!_initialized)
+        {
+            return;
+        }
+
+        /*
+         * Clear Rich Presence trước.
+         */
+        Native.DiscordSocial_ClearActivity();
+
+        /*
+         * Pump một lượt trước khi shutdown.
+         */
+        Native.DiscordSocial_RunCallbacks();
+
+        /*
+         * Ngắt hoàn toàn native Social SDK client.
+         *
+         * Dùng khi game đang foreground để app mình
+         * không giữ activity Coding.
+         */
+        Native.DiscordSocial_Shutdown();
+
+        _initialized =
+            false;
+    }
+
+    // =========================================================
+    // Presence
+    // =========================================================
+
     public bool SetPresence(
         string name,
         string? details,
@@ -76,7 +140,9 @@ internal sealed class DiscordSocialClient : IDisposable
         );
 
         if (!_initialized)
+        {
             return false;
+        }
 
         long startTimestamp =
             0;
@@ -100,31 +166,51 @@ internal sealed class DiscordSocialClient : IDisposable
         );
     }
 
+    // =========================================================
+    // Clear
+    // =========================================================
+
     public void ClearPresence()
     {
         if (!IsInitialized)
+        {
             return;
+        }
 
         Native.DiscordSocial_ClearActivity();
     }
 
+    // =========================================================
+    // Callbacks
+    // =========================================================
+
     public void RunCallbacks()
     {
         if (!IsInitialized)
+        {
             return;
+        }
 
         Native.DiscordSocial_RunCallbacks();
     }
 
+    // =========================================================
+    // Dispose
+    // =========================================================
+
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         if (_initialized)
         {
             Native.DiscordSocial_ClearActivity();
+
             Native.DiscordSocial_RunCallbacks();
+
             Native.DiscordSocial_Shutdown();
 
             _initialized =
@@ -135,6 +221,10 @@ internal sealed class DiscordSocialClient : IDisposable
             true;
     }
 
+    // =========================================================
+    // Native bridge
+    // =========================================================
+
     private static class Native
     {
         private const string DllName =
@@ -142,7 +232,8 @@ internal sealed class DiscordSocialClient : IDisposable
 
         [DllImport(
             DllName,
-            CallingConvention = CallingConvention.Cdecl)]
+            CallingConvention = CallingConvention.Cdecl
+        )]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool DiscordSocial_Initialize(
             ulong applicationId
@@ -150,7 +241,8 @@ internal sealed class DiscordSocialClient : IDisposable
 
         [DllImport(
             DllName,
-            CallingConvention = CallingConvention.Cdecl)]
+            CallingConvention = CallingConvention.Cdecl
+        )]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool DiscordSocial_SetActivity(
             [MarshalAs(UnmanagedType.LPUTF8Str)]
@@ -173,20 +265,20 @@ internal sealed class DiscordSocialClient : IDisposable
 
         [DllImport(
             DllName,
-            CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void
-            DiscordSocial_ClearActivity();
+            CallingConvention = CallingConvention.Cdecl
+        )]
+        internal static extern void DiscordSocial_ClearActivity();
 
         [DllImport(
             DllName,
-            CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void
-            DiscordSocial_RunCallbacks();
+            CallingConvention = CallingConvention.Cdecl
+        )]
+        internal static extern void DiscordSocial_RunCallbacks();
 
         [DllImport(
             DllName,
-            CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void
-            DiscordSocial_Shutdown();
+            CallingConvention = CallingConvention.Cdecl
+        )]
+        internal static extern void DiscordSocial_Shutdown();
     }
 }

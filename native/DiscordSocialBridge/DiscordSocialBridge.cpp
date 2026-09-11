@@ -1,6 +1,6 @@
 #define DISCORDPP_IMPLEMENTATION
-#include "../sdk/include/discordpp.h"
 
+#include "../sdk/include/discordpp.h"
 #include "DiscordSocialBridge.h"
 
 #include <memory>
@@ -8,13 +8,25 @@
 #include <string>
 #include <utility>
 
+// ============================================================
+// State
+// ============================================================
+
 namespace
 {
-    std::unique_ptr<discordpp::Client> g_client;
-    bool g_initialized = false;
+    std::unique_ptr<discordpp::Client>
+        g_client;
+
+    bool g_initialized =
+        false;
+
+    // ========================================================
+    // Helpers
+    // ========================================================
 
     std::optional<std::string> ToOptionalString(
-        const char* value)
+        const char* value
+    )
     {
         if (value == nullptr ||
             value[0] == '\0')
@@ -22,17 +34,30 @@ namespace
             return std::nullopt;
         }
 
-        return std::string(value);
+        return std::string(
+            value
+        );
     }
 }
 
+// ============================================================
+// C API
+// ============================================================
+
 extern "C"
 {
+    // ========================================================
+    // Initialize
+    // ========================================================
+
     bool DiscordSocial_Initialize(
-        uint64_t applicationId)
+        uint64_t applicationId
+    )
     {
         if (g_initialized)
+        {
             return true;
+        }
 
         try
         {
@@ -43,7 +68,8 @@ extern "C"
                 applicationId
             );
 
-            g_initialized = true;
+            g_initialized =
+                true;
 
             return true;
         }
@@ -51,11 +77,16 @@ extern "C"
         {
             g_client.reset();
 
-            g_initialized = false;
+            g_initialized =
+                false;
 
             return false;
         }
     }
+
+    // ========================================================
+    // Set Activity
+    // ========================================================
 
     bool DiscordSocial_SetActivity(
         const char* name,
@@ -63,7 +94,8 @@ extern "C"
         const char* state,
         const char* largeImage,
         const char* largeText,
-        int64_t startTimestamp)
+        int64_t startTimestamp
+    )
     {
         if (!g_initialized ||
             !g_client)
@@ -75,9 +107,17 @@ extern "C"
         {
             discordpp::Activity activity;
 
+            // ------------------------------------------------
+            // Type
+            // ------------------------------------------------
+
             activity.SetType(
                 discordpp::ActivityTypes::Playing
             );
+
+            // ------------------------------------------------
+            // Name
+            // ------------------------------------------------
 
             activity.SetName(
                 name != nullptr
@@ -85,44 +125,65 @@ extern "C"
                     : std::string()
             );
 
+            // ------------------------------------------------
+            // Details
+            // ------------------------------------------------
+
             activity.SetDetails(
-                ToOptionalString(details)
+                ToOptionalString(
+                    details
+                )
             );
+
+            // ------------------------------------------------
+            // State
+            // ------------------------------------------------
 
             activity.SetState(
-                ToOptionalString(state)
+                ToOptionalString(
+                    state
+                )
             );
 
-            // -------------------------------------------------
+            // ------------------------------------------------
             // Assets
-            // -------------------------------------------------
+            // ------------------------------------------------
 
-            if ((largeImage != nullptr &&
-                 largeImage[0] != '\0') ||
-                (largeText != nullptr &&
-                 largeText[0] != '\0'))
+            if (
+                (
+                    largeImage != nullptr &&
+                    largeImage[0] != '\0'
+                ) ||
+                (
+                    largeText != nullptr &&
+                    largeText[0] != '\0'
+                )
+            )
             {
                 discordpp::ActivityAssets assets;
 
                 assets.SetLargeImage(
-                    ToOptionalString(largeImage)
+                    ToOptionalString(
+                        largeImage
+                    )
                 );
 
                 assets.SetLargeText(
-                    ToOptionalString(largeText)
+                    ToOptionalString(
+                        largeText
+                    )
                 );
 
                 activity.SetAssets(
-                    std::move(assets)
+                    std::move(
+                        assets
+                    )
                 );
             }
 
-            // -------------------------------------------------
+            // ------------------------------------------------
             // Timestamp
-            //
-            // 0 = disabled.
-            // Discord Social SDK expects Unix time.
-            // -------------------------------------------------
+            // ------------------------------------------------
 
             if (startTimestamp > 0)
             {
@@ -133,18 +194,27 @@ extern "C"
                 );
 
                 activity.SetTimestamps(
-                    std::move(timestamps)
+                    std::move(
+                        timestamps
+                    )
                 );
             }
 
-            // -------------------------------------------------
-            // Update
-            // -------------------------------------------------
+            // ------------------------------------------------
+            // Update Rich Presence
+            // ------------------------------------------------
 
             g_client->UpdateRichPresence(
-                std::move(activity),
+                std::move(
+                    activity
+                ),
+
                 [](discordpp::ClientResult result)
                 {
+                    /*
+                     * Async result hiện chưa expose
+                     * sang C#.
+                     */
                     (void)result;
                 }
             );
@@ -156,6 +226,10 @@ extern "C"
             return false;
         }
     }
+
+    // ========================================================
+    // Clear Activity
+    // ========================================================
 
     void DiscordSocial_ClearActivity()
     {
@@ -167,30 +241,53 @@ extern "C"
 
         try
         {
-            discordpp::Activity activity;
-
-            g_client->UpdateRichPresence(
-                std::move(activity),
-                [](discordpp::ClientResult result)
-                {
-                    (void)result;
-                }
-            );
+            /*
+             * Dùng API clear chính thức của
+             * Discord Social SDK.
+             *
+             * Không gửi một Activity rỗng bằng
+             * UpdateRichPresence().
+             */
+            g_client->ClearRichPresence();
         }
         catch (...)
         {
         }
     }
 
+    // ========================================================
+    // Run Callbacks
+    // ========================================================
+
     void DiscordSocial_RunCallbacks()
     {
-        discordpp::RunCallbacks();
+        try
+        {
+            discordpp::RunCallbacks();
+        }
+        catch (...)
+        {
+        }
     }
+
+    // ========================================================
+    // Shutdown
+    // ========================================================
 
     void DiscordSocial_Shutdown()
     {
+        /*
+         * Destroy native Client hoàn toàn.
+         *
+         * C# dùng cái này cho:
+         *
+         * - Discord restart recovery
+         * - game override Suspend()
+         * - application shutdown
+         */
         g_client.reset();
 
-        g_initialized = false;
+        g_initialized =
+            false;
     }
 }

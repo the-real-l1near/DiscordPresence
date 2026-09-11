@@ -69,15 +69,16 @@ public sealed class MainForm : Form
 
     private DateTime? _sessionStartTime;
 
-    private bool _isIdle = true;
+    private bool _isIdle =
+        true;
 
-    /*
-     * Tránh gửi Idle presence mỗi giây.
-     *
-     * Đồng thời cho phép gửi Idle lần đầu
-     * ngay cả khi _isIdle mặc định = true.
-     */
     private bool _idlePresenceSent;
+
+    // =========================================================
+    // Game override
+    // =========================================================
+
+    private bool _isGameOverrideActive;
 
     // =========================================================
     // Settings
@@ -144,8 +145,11 @@ public sealed class MainForm : Form
                 appIcon;
         }
 
-        Width = 540;
-        Height = 480;
+        Width =
+            540;
+
+        Height =
+            480;
 
         StartPosition =
             FormStartPosition.CenterScreen;
@@ -166,10 +170,14 @@ public sealed class MainForm : Form
                 Text =
                     "Detected project",
 
-                Left = 20,
-                Top = 20,
+                Left =
+                    20,
 
-                Width = 180
+                Top =
+                    20,
+
+                Width =
+                    180
             };
 
         _detectedProjectLabel =
@@ -178,10 +186,14 @@ public sealed class MainForm : Form
                 Text =
                     "None",
 
-                Left = 20,
-                Top = 45,
+                Left =
+                    20,
 
-                Width = 480,
+                Top =
+                    45,
+
+                Width =
+                    480,
 
                 Font = new Font(
                     Font,
@@ -199,10 +211,14 @@ public sealed class MainForm : Form
                 Text =
                     "Detected application",
 
-                Left = 20,
-                Top = 85,
+                Left =
+                    20,
 
-                Width = 180
+                Top =
+                    85,
+
+                Width =
+                    180
             };
 
         _detectedAppLabel =
@@ -211,10 +227,14 @@ public sealed class MainForm : Form
                 Text =
                     "Idle",
 
-                Left = 20,
-                Top = 110,
+                Left =
+                    20,
 
-                Width = 480,
+                Top =
+                    110,
+
+                Width =
+                    480,
 
                 Font = new Font(
                     Font,
@@ -232,10 +252,14 @@ public sealed class MainForm : Form
                 Text =
                     "Window title",
 
-                Left = 20,
-                Top = 150,
+                Left =
+                    20,
 
-                Width = 180
+                Top =
+                    150,
+
+                Width =
+                    180
             };
 
         _windowTitleLabel =
@@ -244,11 +268,17 @@ public sealed class MainForm : Form
                 Text =
                     "-",
 
-                Left = 20,
-                Top = 175,
+                Left =
+                    20,
 
-                Width = 480,
-                Height = 40,
+                Top =
+                    175,
+
+                Width =
+                    480,
+
+                Height =
+                    40,
 
                 AutoEllipsis =
                     true
@@ -264,10 +294,14 @@ public sealed class MainForm : Form
                 Text =
                     "Show elapsed time",
 
-                Left = 20,
-                Top = 225,
+                Left =
+                    20,
 
-                Width = 180,
+                Top =
+                    225,
+
+                Width =
+                    180,
 
                 Checked =
                     _settings.ShowElapsedTime
@@ -283,10 +317,14 @@ public sealed class MainForm : Form
                 Text =
                     "Start minimized",
 
-                Left = 220,
-                Top = 225,
+                Left =
+                    220,
 
-                Width = 180,
+                Top =
+                    225,
+
+                Width =
+                    180,
 
                 Checked =
                     _settings.StartMinimized
@@ -302,10 +340,14 @@ public sealed class MainForm : Form
                 Text =
                     "Start with Windows",
 
-                Left = 20,
-                Top = 255,
+                Left =
+                    20,
 
-                Width = 180,
+                Top =
+                    255,
+
+                Width =
+                    180,
 
                 Checked =
                     StartupService.IsEnabled()
@@ -321,11 +363,17 @@ public sealed class MainForm : Form
                 Text =
                     "Refresh Presence",
 
-                Left = 20,
-                Top = 305,
+                Left =
+                    20,
 
-                Width = 140,
-                Height = 35
+                Top =
+                    305,
+
+                Width =
+                    140,
+
+                Height =
+                    35
             };
 
         // -----------------------------------------------------
@@ -338,11 +386,17 @@ public sealed class MainForm : Form
                 Text =
                     "Clear",
 
-                Left = 170,
-                Top = 305,
+                Left =
+                    170,
 
-                Width = 100,
-                Height = 35
+                Top =
+                    305,
+
+                Width =
+                    100,
+
+                Height =
+                    35
             };
 
         // -----------------------------------------------------
@@ -355,10 +409,14 @@ public sealed class MainForm : Form
                 Text =
                     "Discord: initializing...",
 
-                Left = 20,
-                Top = 365,
+                Left =
+                    20,
 
-                Width = 480
+                Top =
+                    365,
+
+                Width =
+                    480
             };
 
         // =====================================================
@@ -424,12 +482,17 @@ public sealed class MainForm : Form
         // UI events
         // =====================================================
 
-        // -----------------------------------------------------
-        // Refresh
-        // -----------------------------------------------------
-
         refreshButton.Click += (_, _) =>
         {
+            if (_isGameOverrideActive)
+            {
+                SetStatus(
+                    "Game detected · Presence suspended"
+                );
+
+                return;
+            }
+
             if (_isIdle)
             {
                 _idlePresenceSent =
@@ -443,18 +506,10 @@ public sealed class MainForm : Form
             }
         };
 
-        // -----------------------------------------------------
-        // Clear
-        // -----------------------------------------------------
-
         clearButton.Click += (_, _) =>
         {
             ClearPresence();
         };
-
-        // -----------------------------------------------------
-        // Show elapsed time
-        // -----------------------------------------------------
 
         _elapsedTimeCheckBox.CheckedChanged += (_, _) =>
         {
@@ -470,9 +525,6 @@ public sealed class MainForm : Form
                 return;
             }
 
-            /*
-             * Idle không có timer.
-             */
             if (_isIdle)
             {
                 return;
@@ -499,19 +551,13 @@ public sealed class MainForm : Form
                 );
             }
 
-            /*
-             * Social SDK không có UpdateStartTime /
-             * UpdateClearTime kiểu RPC cũ.
-             *
-             * Gửi lại toàn bộ Activity với hoặc
-             * không có timestamp.
-             */
+            if (_isGameOverrideActive)
+            {
+                return;
+            }
+
             SetPresence();
         };
-
-        // -----------------------------------------------------
-        // Start minimized
-        // -----------------------------------------------------
 
         _startMinimizedCheckBox.CheckedChanged += (_, _) =>
         {
@@ -522,10 +568,6 @@ public sealed class MainForm : Form
                 _settings
             );
         };
-
-        // -----------------------------------------------------
-        // Start with Windows
-        // -----------------------------------------------------
 
         _startWithWindowsCheckBox.CheckedChanged += (_, _) =>
         {
@@ -585,18 +627,26 @@ public sealed class MainForm : Form
         _detectionTimer.Tick += (_, _) =>
         {
             /*
-             * Pump Social SDK callbacks.
+             * Nếu SDK đang active thì pump callback.
+             *
+             * Khi game đang suspend SDK,
+             * RunCallbacks() tự return.
              */
             _discordClient.RunCallbacks();
 
             /*
-             * Update app/project trước để recovery
-             * luôn resend presence mới nhất.
+             * Game override chạy đầu tiên để chặn
+             * tất cả code path có thể gửi presence.
+             */
+            HandleGameOverride();
+
+            /*
+             * Update editor / project state.
              */
             DetectActiveApp();
 
             /*
-             * Handle Discord startup / restart.
+             * Discord startup / restart recovery.
              */
             HandleDiscordPresenceRecovery();
         };
@@ -706,22 +756,12 @@ public sealed class MainForm : Form
 
     private void DetectActiveApp()
     {
-        /*
-         * Không còn cửa sổ app supported nào:
-         *
-         * → kết thúc work session
-         * → chuyển Idle.
-         */
         if (!HasSupportedAppRunning())
         {
             EnterIdle();
 
             return;
         }
-
-        // -----------------------------------------------------
-        // Foreground application
-        // -----------------------------------------------------
 
         var activeApp =
             ActiveAppDetector
@@ -733,11 +773,8 @@ public sealed class MainForm : Form
         }
 
         /*
-         * Foreground là app không supported
-         * nhưng editor vẫn đang chạy:
-         *
-         * → giữ presence gần nhất
-         * → timer vẫn tiếp tục.
+         * Foreground không phải app supported:
+         * giữ state editor gần nhất.
          */
         if (!AppProfiles.TryGetValue(
             activeApp.ProcessName,
@@ -746,20 +783,12 @@ public sealed class MainForm : Form
             return;
         }
 
-        // -----------------------------------------------------
-        // Window title
-        // -----------------------------------------------------
-
         _windowTitleLabel.Text =
             string.IsNullOrWhiteSpace(
                 activeApp.WindowTitle
             )
                 ? "-"
                 : activeApp.WindowTitle;
-
-        // -----------------------------------------------------
-        // Project detection
-        // -----------------------------------------------------
 
         var projectName =
             ProjectNameDetector.Detect(
@@ -778,10 +807,6 @@ public sealed class MainForm : Form
         var presenceKey =
             $"{activeApp.ProcessName}|{projectName}";
 
-        // -----------------------------------------------------
-        // Nothing changed
-        // -----------------------------------------------------
-
         if (string.Equals(
             _lastPresenceKey,
             presenceKey,
@@ -789,10 +814,6 @@ public sealed class MainForm : Form
         {
             return;
         }
-
-        // -----------------------------------------------------
-        // Leaving Idle
-        // -----------------------------------------------------
 
         if (_isIdle)
         {
@@ -802,23 +823,9 @@ public sealed class MainForm : Form
             _idlePresenceSent =
                 false;
 
-            /*
-             * Bắt đầu work session mới.
-             */
             _sessionStartTime =
                 DateTime.UtcNow;
         }
-
-        /*
-         * Không reset timer khi chuyển editor.
-         *
-         * Code → Blender → Unreal → IntelliJ
-         * vẫn thuộc cùng một work session.
-         */
-
-        // -----------------------------------------------------
-        // Save detection
-        // -----------------------------------------------------
 
         _lastPresenceKey =
             presenceKey;
@@ -832,19 +839,20 @@ public sealed class MainForm : Form
         _currentRepositoryName =
             repositoryName;
 
-        // -----------------------------------------------------
-        // GUI
-        // -----------------------------------------------------
-
         _detectedAppLabel.Text =
             profile.DisplayName;
 
         _detectedProjectLabel.Text =
             projectName;
 
-        // -----------------------------------------------------
-        // Discord
-        // -----------------------------------------------------
+        /*
+         * Game override đang active:
+         * chỉ update internal state.
+         */
+        if (_isGameOverrideActive)
+        {
+            return;
+        }
 
         SetPresence();
     }
@@ -880,13 +888,6 @@ public sealed class MainForm : Form
                         continue;
                     }
 
-                    /*
-                     * Chỉ tính app đang hoạt động
-                     * nếu còn top-level window.
-                     *
-                     * Tránh helper/background process
-                     * giữ app khỏi vào Idle.
-                     */
                     if (process.MainWindowHandle !=
                         IntPtr.Zero)
                     {
@@ -895,10 +896,6 @@ public sealed class MainForm : Form
                 }
                 catch
                 {
-                    /*
-                     * Process có thể đóng đúng lúc
-                     * đang kiểm tra.
-                     */
                 }
             }
 
@@ -939,13 +936,6 @@ public sealed class MainForm : Form
             {
                 try
                 {
-                    /*
-                     * Discord là Electron app nên có
-                     * nhiều Discord.exe.
-                     *
-                     * Chỉ coi Discord desktop đã mở
-                     * khi có process sở hữu window.
-                     */
                     if (process.MainWindowHandle !=
                         IntPtr.Zero)
                     {
@@ -954,10 +944,6 @@ public sealed class MainForm : Form
                 }
                 catch
                 {
-                    /*
-                     * Process có thể đóng đúng lúc
-                     * đang kiểm tra.
-                     */
                 }
             }
 
@@ -969,6 +955,126 @@ public sealed class MainForm : Form
             {
                 process.Dispose();
             }
+        }
+    }
+
+    // =========================================================
+    // Game override
+    // =========================================================
+
+    private void HandleGameOverride()
+    {
+        var gameRunning =
+            GameDetector.IsForegroundGame();
+
+        // -----------------------------------------------------
+        // Game became active
+        // -----------------------------------------------------
+
+        if (gameRunning)
+        {
+            if (_isGameOverrideActive)
+            {
+                return;
+            }
+
+            /*
+             * Set flag trước để tất cả code path
+             * gửi presence bị block ngay lập tức.
+             */
+            _isGameOverrideActive =
+                true;
+
+            /*
+             * Recovery Discord đang chạy dở cũng không
+             * còn cần thiết trong lúc chơi game.
+             */
+            _discordPresenceRetryTicksRemaining =
+                0;
+
+            /*
+             * Ngắt hoàn toàn Social SDK client.
+             */
+            if (_discordClient.IsInitialized)
+            {
+                _discordClient.Suspend();
+            }
+
+            SetStatus(
+                "Game detected · Presence suspended"
+            );
+
+            return;
+        }
+
+        // -----------------------------------------------------
+        // No suspended session
+        // -----------------------------------------------------
+
+        if (!_isGameOverrideActive)
+        {
+            return;
+        }
+
+        // -----------------------------------------------------
+        // Game lost foreground / exited
+        // -----------------------------------------------------
+
+        _isGameOverrideActive =
+            false;
+
+        /*
+         * Resume Social SDK client.
+         */
+        var reinitialized =
+            _discordClient.Reinitialize();
+
+        if (!reinitialized)
+        {
+            SetStatus(
+                "Discord Social SDK: reinitialization failed"
+            );
+
+            return;
+        }
+
+        /*
+         * Nếu Discord hiện đang chạy thì đánh dấu luôn
+         * để HandleDiscordPresenceRecovery() không
+         * reinitialize thêm lần thứ hai trong cùng tick.
+         */
+        _wasDiscordRunning =
+            IsDiscordRunning();
+
+        if (_wasDiscordRunning)
+        {
+            /*
+             * Cho phép resend thêm vài giây nếu Discord
+             * vừa mới recover / chưa ready hoàn toàn.
+             */
+            _discordPresenceRetryTicksRemaining =
+                DiscordPresenceRetryTicks;
+        }
+        else
+        {
+            _discordPresenceRetryTicksRemaining =
+                0;
+        }
+
+        // -----------------------------------------------------
+        // Restore current presence
+        // -----------------------------------------------------
+
+        if (_isIdle)
+        {
+            _idlePresenceSent =
+                false;
+
+            SetIdlePresence();
+        }
+        else
+        {
+            SetPresence();
         }
     }
 
@@ -987,13 +1093,6 @@ public sealed class MainForm : Form
 
         if (!discordRunning)
         {
-            /*
-             * Ghi nhận Discord đã biến mất.
-             *
-             * Lần sau Discord xuất hiện sẽ tạo transition:
-             *
-             * false → true
-             */
             _wasDiscordRunning =
                 false;
 
@@ -1004,7 +1103,19 @@ public sealed class MainForm : Form
         }
 
         // -----------------------------------------------------
-        // Discord just started / restarted
+        // Game currently has priority
+        // -----------------------------------------------------
+
+        if (_isGameOverrideActive)
+        {
+            /*
+             * Không resume SDK khi game đang foreground.
+             */
+            return;
+        }
+
+        // -----------------------------------------------------
+        // Discord started / restarted
         // -----------------------------------------------------
 
         if (!_wasDiscordRunning)
@@ -1012,14 +1123,6 @@ public sealed class MainForm : Form
             _wasDiscordRunning =
                 true;
 
-            /*
-             * Native Social SDK client cũ có thể đã được
-             * tạo trước khi Discord desktop chạy hoặc đã
-             * mất connection sau Discord restart.
-             *
-             * Tạo lại client đúng một lần khi Discord
-             * xuất hiện.
-             */
             var reinitialized =
                 _discordClient.Reinitialize();
 
@@ -1032,12 +1135,6 @@ public sealed class MainForm : Form
                 return;
             }
 
-            /*
-             * Discord đã có window nhưng local RPC có thể
-             * chưa ready hoàn toàn.
-             *
-             * Retry tối đa 10 giây.
-             */
             _discordPresenceRetryTicksRemaining =
                 DiscordPresenceRetryTicks;
         }
@@ -1058,9 +1155,6 @@ public sealed class MainForm : Form
 
         if (_isIdle)
         {
-            /*
-             * Cho phép resend Idle trong recovery window.
-             */
             _idlePresenceSent =
                 false;
 
@@ -1068,11 +1162,6 @@ public sealed class MainForm : Form
         }
         else
         {
-            /*
-             * Giữ nguyên work session hiện tại.
-             *
-             * Discord restart không reset elapsed time.
-             */
             SetPresence();
         }
 
@@ -1091,6 +1180,11 @@ public sealed class MainForm : Form
                 "Discord chưa kết nối."
             );
 
+            return;
+        }
+
+        if (_isGameOverrideActive)
+        {
             return;
         }
 
@@ -1113,7 +1207,7 @@ public sealed class MainForm : Form
             _currentRepositoryName;
 
         // -----------------------------------------------------
-        // Work session time
+        // Work session
         // -----------------------------------------------------
 
         _sessionStartTime ??=
@@ -1179,10 +1273,6 @@ public sealed class MainForm : Form
 
     private void EnterIdle()
     {
-        /*
-         * Đã gửi Idle rồi:
-         * không spam Discord mỗi giây.
-         */
         if (_isIdle &&
             _idlePresenceSent)
         {
@@ -1193,7 +1283,7 @@ public sealed class MainForm : Form
             true;
 
         // -----------------------------------------------------
-        // End current work session
+        // End work session
         // -----------------------------------------------------
 
         _sessionStartTime =
@@ -1212,7 +1302,7 @@ public sealed class MainForm : Form
             null;
 
         // -----------------------------------------------------
-        // GUI
+        // UI
         // -----------------------------------------------------
 
         _detectedProjectLabel.Text =
@@ -1225,8 +1315,13 @@ public sealed class MainForm : Form
             "-";
 
         // -----------------------------------------------------
-        // Discord
+        // Game override
         // -----------------------------------------------------
+
+        if (_isGameOverrideActive)
+        {
+            return;
+        }
 
         SetIdlePresence();
     }
@@ -1239,6 +1334,11 @@ public sealed class MainForm : Form
                 "Discord chưa kết nối."
             );
 
+            return;
+        }
+
+        if (_isGameOverrideActive)
+        {
             return;
         }
 
@@ -1296,6 +1396,8 @@ public sealed class MainForm : Form
         }
 
         _discordClient.ClearPresence();
+
+        _discordClient.RunCallbacks();
 
         SetStatus(
             "Presence cleared."
@@ -1421,23 +1523,11 @@ public sealed class MainForm : Form
     protected override void OnFormClosed(
         FormClosedEventArgs e)
     {
-        // -----------------------------------------------------
-        // Detector
-        // -----------------------------------------------------
-
         _detectionTimer.Stop();
 
         _detectionTimer.Dispose();
 
-        // -----------------------------------------------------
-        // Discord
-        // -----------------------------------------------------
-
         _discordClient.Dispose();
-
-        // -----------------------------------------------------
-        // Tray
-        // -----------------------------------------------------
 
         _trayIcon.Visible =
             false;
@@ -1445,10 +1535,6 @@ public sealed class MainForm : Form
         _trayIcon.Dispose();
 
         _trayMenu.Dispose();
-
-        // -----------------------------------------------------
-        // Base
-        // -----------------------------------------------------
 
         base.OnFormClosed(e);
     }
