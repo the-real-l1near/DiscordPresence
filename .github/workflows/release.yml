@@ -11,7 +11,7 @@ permissions:
 jobs:
   release:
     name: Build installer and publish release
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
@@ -42,7 +42,35 @@ jobs:
 
       - name: Restore
         run: dotnet restore .\DiscordPresence.csproj
+        
+      - name: Build Discord Social SDK bridge
+        shell: pwsh
+        run: |
+          cmake `
+            -S .\native\DiscordSocialBridge `
+            -B .\native\DiscordSocialBridge\build `
+            -G "Visual Studio 17 2022" `
+            -A x64
 
+          if ($LASTEXITCODE -ne 0) {
+              throw "CMake configure failed."
+          }
+
+          cmake --build `
+            .\native\DiscordSocialBridge\build `
+            --config Release
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Discord Social SDK bridge build failed."
+          }
+
+          $bridgePath =
+              ".\native\DiscordSocialBridge\build\Release\DiscordSocialBridge.dll"
+
+          if (-not (Test-Path $bridgePath)) {
+              throw "DiscordSocialBridge.dll was not generated."
+          }
+          
       - name: Publish self-contained Windows x64 build
         shell: pwsh
         run: |
