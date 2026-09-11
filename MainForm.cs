@@ -41,17 +41,26 @@ public sealed class MainForm : Form
                 "IntelliJ IDEA"
             )
         };
+
     // =========================================================
     // Detection
     // =========================================================
 
     private readonly System.Windows.Forms.Timer _detectionTimer;
 
+    private bool _wasDiscordRunning;
+
+    private int _discordPresenceRetryTicksRemaining;
+
+    private const int DiscordPresenceRetryTicks =
+        10;
+
     private string? _lastPresenceKey;
 
     private AppPresenceProfile? _currentProfile;
 
     private string? _currentProjectName;
+
     private string? _currentRepositoryName;
 
     // =========================================================
@@ -576,12 +585,20 @@ public sealed class MainForm : Form
         _detectionTimer.Tick += (_, _) =>
         {
             /*
-             * Social SDK callbacks phải được pump
-             * định kỳ.
+             * Pump Social SDK callbacks.
              */
             _discordClient.RunCallbacks();
 
+            /*
+             * Update app/project trước để recovery
+             * luôn resend presence mới nhất.
+             */
             DetectActiveApp();
+
+            /*
+             * Handle Discord startup / restart.
+             */
+            HandleDiscordPresenceRecovery();
         };
 
         _detectionTimer.Start();
@@ -716,15 +733,8 @@ public sealed class MainForm : Form
         }
 
         /*
-         * Foreground là:
-         *
-         * Chrome
-         * Discord
-         * Explorer
-         * Spotify
-         * ...
-         *
-         * nhưng editor vẫn chạy:
+         * Foreground là app không supported
+         * nhưng editor vẫn đang chạy:
          *
          * → giữ presence gần nhất
          * → timer vẫn tiếp tục.
@@ -792,16 +802,18 @@ public sealed class MainForm : Form
             _idlePresenceSent =
                 false;
 
-            // New work session.
+            /*
+             * Bắt đầu work session mới.
+             */
             _sessionStartTime =
                 DateTime.UtcNow;
         }
 
         /*
-         * KHÔNG reset timer ở đây.
+         * Không reset timer khi chuyển editor.
          *
          * Code → Blender → Unreal → IntelliJ
-         * vẫn thuộc cùng một session.
+         * vẫn thuộc cùng một work session.
          */
 
         // -----------------------------------------------------
@@ -872,7 +884,7 @@ public sealed class MainForm : Form
                      * Chỉ tính app đang hoạt động
                      * nếu còn top-level window.
                      *
-                     * Tránh Code.exe helper/background
+                     * Tránh helper/background process
                      * giữ app khỏi vào Idle.
                      */
                     if (process.MainWindowHandle !=
@@ -884,8 +896,8 @@ public sealed class MainForm : Form
                 catch
                 {
                     /*
-                     * Process có thể đóng
-                     * đúng lúc đang kiểm tra.
+                     * Process có thể đóng đúng lúc
+                     * đang kiểm tra.
                      */
                 }
             }
@@ -899,6 +911,172 @@ public sealed class MainForm : Form
                 process.Dispose();
             }
         }
+    }
+
+    // =========================================================
+    // Discord process
+    // =========================================================
+
+    private static bool IsDiscordRunning()
+    {
+        Process[] processes;
+
+        try
+        {
+            processes =
+                Process.GetProcessesByName(
+                    "Discord"
+                );
+        }
+        catch
+        {
+            return false;
+        }
+
+        try
+        {
+            foreach (var process in processes)
+            {
+                try
+                {
+                    /*
+                     * Discord là Electron app nên có
+                     * nhiều Discord.exe.
+                     *
+                     * Chỉ coi Discord desktop đã mở
+                     * khi có process sở hữu window.
+                     */
+                    if (process.MainWindowHandle !=
+                        IntPtr.Zero)
+                    {
+                        return true;
+                    }
+                }
+                catch
+                {
+                    /*
+                     * Process có thể đóng đúng lúc
+                     * đang kiểm tra.
+                     */
+                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+        }
+    }
+
+    // =========================================================
+    // Discord presence recovery
+    // =========================================================
+
+    private void HandleDiscordPresenceRecovery()
+    {
+        var discordRunning =
+            IsDiscordRunning();
+
+        // -----------------------------------------------------
+        // Discord stopped
+        // -----------------------------------------------------
+
+        if (!discordRunning)
+        {
+            /*
+             * Ghi nhận Discord đã biến mất.
+             *
+             * Lần sau Discord xuất hiện sẽ tạo transition:
+             *
+             * false → true
+             */
+            _wasDiscordRunning =
+                false;
+
+            _discordPresenceRetryTicksRemaining =
+                0;
+
+            return;
+        }
+
+        // -----------------------------------------------------
+        // Discord just started / restarted
+        // -----------------------------------------------------
+
+        if (!_wasDiscordRunning)
+        {
+            _wasDiscordRunning =
+                true;
+
+            /*
+             * Native Social SDK client cũ có thể đã được
+             * tạo trước khi Discord desktop chạy hoặc đã
+             * mất connection sau Discord restart.
+             *
+             * Tạo lại client đúng một lần khi Discord
+             * xuất hiện.
+             */
+            var reinitialized =
+                _discordClient.Reinitialize();
+
+            if (!reinitialized)
+            {
+                SetStatus(
+                    "Discord Social SDK: reinitialization failed"
+                );
+
+                return;
+            }
+
+            /*
+             * Discord đã có window nhưng local RPC có thể
+             * chưa ready hoàn toàn.
+             *
+             * Retry tối đa 10 giây.
+             */
+            _discordPresenceRetryTicksRemaining =
+                DiscordPresenceRetryTicks;
+        }
+
+        // -----------------------------------------------------
+        // No recovery needed
+        // -----------------------------------------------------
+
+        if (_discordPresenceRetryTicksRemaining <=
+            0)
+        {
+            return;
+        }
+
+        // -----------------------------------------------------
+        // Resend current presence
+        // -----------------------------------------------------
+
+        if (_isIdle)
+        {
+            /*
+             * Cho phép resend Idle trong recovery window.
+             */
+            _idlePresenceSent =
+                false;
+
+            SetIdlePresence();
+        }
+        else
+        {
+            /*
+             * Giữ nguyên work session hiện tại.
+             *
+             * Discord restart không reset elapsed time.
+             */
+            SetPresence();
+        }
+
+        _discordPresenceRetryTicksRemaining--;
     }
 
     // =========================================================
@@ -956,15 +1134,6 @@ public sealed class MainForm : Form
 
         var updated =
             _discordClient.SetPresence(
-                /*
-                 * Social SDK cho phép đổi tên
-                 * activity động.
-                 *
-                 * Coding → Visual Studio Code
-                 * Coding → Blender
-                 * Coding → Unreal Engine
-                 * ...
-                 */
                 name:
                     profile.DisplayName,
 
@@ -976,7 +1145,7 @@ public sealed class MainForm : Form
                 state:
                     repositoryName is not null
                         ? $"Repo: {repositoryName}"
-                        : "Repo: Not detected",  
+                        : "Repo: Not detected",
 
                 largeImage:
                     profile.LargeImageKey,
@@ -1040,7 +1209,7 @@ public sealed class MainForm : Form
             null;
 
         _currentRepositoryName =
-            null;   
+            null;
 
         // -----------------------------------------------------
         // GUI

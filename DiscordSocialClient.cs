@@ -32,6 +32,36 @@ internal sealed class DiscordSocialClient : IDisposable
         return _initialized;
     }
 
+    public bool Reinitialize()
+    {
+        ObjectDisposedException.ThrowIf(
+            _disposed,
+            this
+        );
+
+        /*
+        * Discord desktop có thể đã bị đóng/restart.
+        *
+        * Client cũ có thể không còn usable cho
+        * local Rich Presence connection, nên tạo
+        * lại native client khi Discord xuất hiện.
+        */
+        if (_initialized)
+        {
+            Native.DiscordSocial_Shutdown();
+
+            _initialized =
+                false;
+        }
+
+        _initialized =
+            Native.DiscordSocial_Initialize(
+                ApplicationId
+            );
+
+        return _initialized;
+    }
+
     public bool SetPresence(
         string name,
         string? details,
