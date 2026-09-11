@@ -14,6 +14,17 @@ internal sealed class DiscordSocialClient : IDisposable
         _initialized &&
         !_disposed;
 
+    public bool ConsumeReadyEvent()
+    {
+        if (!IsInitialized)
+        {
+            return false;
+        }
+
+        return Native
+            .DiscordSocial_ConsumeReadyEvent();
+    }
+
     public bool Initialize()
     {
         ObjectDisposedException.ThrowIf(
@@ -109,6 +120,13 @@ internal sealed class DiscordSocialClient : IDisposable
     {
         private const string DllName =
             "DiscordSocialBridge.dll";
+
+        [DllImport(
+            DllName,
+            CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool
+            DiscordSocial_ConsumeReadyEvent();
 
         [DllImport(
             DllName,

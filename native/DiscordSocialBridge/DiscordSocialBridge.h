@@ -27,5 +27,7 @@ extern "C"
 
     DSP_EXPORT void DiscordSocial_RunCallbacks();
 
+    DSP_EXPORT bool DiscordSocial_ConsumeReadyEvent();
+
     DSP_EXPORT void DiscordSocial_Shutdown();
 }

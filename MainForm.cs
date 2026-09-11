@@ -575,11 +575,22 @@ public sealed class MainForm : Form
 
         _detectionTimer.Tick += (_, _) =>
         {
-            /*
-             * Social SDK callbacks phải được pump
-             * định kỳ.
-             */
             _discordClient.RunCallbacks();
+
+            if (_discordClient.ConsumeReadyEvent())
+            {
+                if (_isIdle)
+                {
+                    _idlePresenceSent =
+                        false;
+
+                    SetIdlePresence();
+                }
+                else
+                {
+                    SetPresence();
+                }
+            }
 
             DetectActiveApp();
         };
