@@ -3,7 +3,7 @@
 
 #define MyAppName "Discord Presence"
 #define MyAppExeName "DiscordPresence.exe"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppId "DiscordPresence.App"
 
 [Setup]
@@ -40,7 +40,7 @@ CloseApplications=yes
 CloseApplicationsFilter=DiscordPresence.exe,DiscordSocialBridge.dll,discord_partner_sdk.dll
 RestartApplications=no
 
-VersionInfoVersion=1.1.0.0
+VersionInfoVersion=1.2.0.0
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription=Automatic Discord Rich Presence for supported desktop applications.
 VersionInfoProductVersion={#MyAppVersion}
