@@ -3,7 +3,7 @@
 
 #define MyAppName "Discord Presence"
 #define MyAppExeName "DiscordPresence.exe"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppId "DiscordPresence.App"
 
 [Setup]
@@ -14,6 +14,10 @@ AppVerName={#MyAppName} {#MyAppVersion}
 
 DefaultDirName={localappdata}\Programs\DiscordPresence
 DefaultGroupName={#MyAppName}
+
+; Luôn cho phép user chọn installation directory.
+DisableDirPage=no
+
 DisableProgramGroupPage=yes
 
 PrivilegesRequired=lowest
@@ -33,10 +37,10 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 Uninstallable=yes
 
 CloseApplications=yes
-CloseApplicationsFilter=DiscordPresence.exe,DiscordPresence.dll,DiscordRPC.dll,Newtonsoft.Json.dll
+CloseApplicationsFilter=DiscordPresence.exe,DiscordSocialBridge.dll,discord_partner_sdk.dll
 RestartApplications=no
 
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.1.0.0
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription=Automatic Discord Rich Presence for supported desktop applications.
 VersionInfoProductVersion={#MyAppVersion}

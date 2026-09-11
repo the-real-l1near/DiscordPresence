@@ -12,16 +12,41 @@ Set-Location $Root
 $ProjectFile =
     Join-Path $Root "DiscordPresence.csproj"
 
+$NativeSourceDir =
+    Join-Path $Root `
+        "native\DiscordSocialBridge"
+
+$NativeBuildDir =
+    Join-Path $NativeSourceDir `
+        "build"
+
+$NativeDll =
+    Join-Path $NativeBuildDir `
+        "Release\DiscordSocialBridge.dll"
+
 $PublishDir =
     Join-Path $Root `
         "bin\Release\net10.0-windows\win-x64\publish"
+
+$PublishedExe =
+    Join-Path $PublishDir `
+        "DiscordPresence.exe"
+
+$PublishedBridgeDll =
+    Join-Path $PublishDir `
+        "DiscordSocialBridge.dll"
+
+$PublishedSdkDll =
+    Join-Path $PublishDir `
+        "discord_partner_sdk.dll"
 
 $InstallerScript =
     Join-Path $Root `
         "installer\DiscordPresence.iss"
 
 $DistDir =
-    Join-Path $Root "dist"
+    Join-Path $Root `
+        "dist"
 
 # ============================================================
 # Header
@@ -40,12 +65,17 @@ Write-Host "========================================" `
 Write-Host ""
 
 # ============================================================
-# Validate project files
+# Validate required files
 # ============================================================
 
 if (-not (Test-Path $ProjectFile))
 {
     throw "DiscordPresence.csproj was not found: $ProjectFile"
+}
+
+if (-not (Test-Path $NativeSourceDir))
+{
+    throw "Native bridge source directory was not found: $NativeSourceDir"
 }
 
 if (-not (Test-Path $InstallerScript))
@@ -54,10 +84,85 @@ if (-not (Test-Path $InstallerScript))
 }
 
 # ============================================================
-# 1. Publish application
+# Clean old build output
 # ============================================================
 
-Write-Host "[1/3] Publishing application..." `
+Write-Host "[1/5] Cleaning old build output..." `
+    -ForegroundColor Yellow
+
+$OldBuildDirectories =
+    @(
+        (Join-Path $Root "bin")
+        (Join-Path $Root "obj")
+        $NativeBuildDir
+        $DistDir
+    )
+
+foreach ($Directory in $OldBuildDirectories)
+{
+    if (Test-Path $Directory)
+    {
+        Remove-Item `
+            $Directory `
+            -Recurse `
+            -Force
+    }
+}
+
+New-Item `
+    -ItemType Directory `
+    -Path $DistDir `
+    -Force |
+    Out-Null
+
+Write-Host "Old build output cleaned." `
+    -ForegroundColor Green
+
+Write-Host ""
+
+# ============================================================
+# Build native Discord Social SDK bridge
+# ============================================================
+
+Write-Host "[2/5] Building native Social SDK bridge..." `
+    -ForegroundColor Yellow
+
+cmake `
+    -S $NativeSourceDir `
+    -B $NativeBuildDir `
+    -G "Visual Studio 17 2022" `
+    -A x64
+
+if ($LASTEXITCODE -ne 0)
+{
+    throw "CMake configure failed."
+}
+
+cmake `
+    --build $NativeBuildDir `
+    --config Release
+
+if ($LASTEXITCODE -ne 0)
+{
+    throw "Native bridge build failed."
+}
+
+if (-not (Test-Path $NativeDll))
+{
+    throw "DiscordSocialBridge.dll was not found: $NativeDll"
+}
+
+Write-Host ""
+Write-Host "Native bridge build complete." `
+    -ForegroundColor Green
+
+Write-Host ""
+
+# ============================================================
+# Publish application
+# ============================================================
+
+Write-Host "[3/5] Publishing application..." `
     -ForegroundColor Yellow
 
 dotnet publish $ProjectFile `
@@ -70,12 +175,19 @@ if ($LASTEXITCODE -ne 0)
     throw "dotnet publish failed."
 }
 
-$PublishedExe =
-    Join-Path $PublishDir "DiscordPresence.exe"
-
 if (-not (Test-Path $PublishedExe))
 {
     throw "DiscordPresence.exe was not found in: $PublishDir"
+}
+
+if (-not (Test-Path $PublishedBridgeDll))
+{
+    throw "DiscordSocialBridge.dll was not copied to publish output."
+}
+
+if (-not (Test-Path $PublishedSdkDll))
+{
+    throw "discord_partner_sdk.dll was not copied to publish output."
 }
 
 Write-Host ""
@@ -85,10 +197,10 @@ Write-Host "Publish complete." `
 Write-Host ""
 
 # ============================================================
-# 2. Find Inno Setup
+# Find Inno Setup
 # ============================================================
 
-Write-Host "[2/3] Locating Inno Setup compiler..." `
+Write-Host "[4/5] Locating Inno Setup compiler..." `
     -ForegroundColor Yellow
 
 $ISCC =
@@ -103,7 +215,6 @@ $ISCC =
     } |
     Select-Object -First 1
 
-# Try PATH as fallback.
 if (-not $ISCC)
 {
     $Command =
@@ -145,28 +256,10 @@ Write-Host $ISCC `
 Write-Host ""
 
 # ============================================================
-# Clean dist
+# Build installer
 # ============================================================
 
-if (Test-Path $DistDir)
-{
-    Remove-Item `
-        $DistDir `
-        -Recurse `
-        -Force
-}
-
-New-Item `
-    -ItemType Directory `
-    -Path $DistDir `
-    -Force |
-    Out-Null
-
-# ============================================================
-# 3. Build installer
-# ============================================================
-
-Write-Host "[3/3] Compiling installer..." `
+Write-Host "[5/5] Compiling installer..." `
     -ForegroundColor Yellow
 
 & $ISCC $InstallerScript
@@ -195,6 +288,35 @@ if (-not $Installer)
 }
 
 # ============================================================
+# Cleanup build output
+# ============================================================
+
+Write-Host ""
+Write-Host "Cleaning temporary build output..." `
+    -ForegroundColor Yellow
+
+$CleanupDirectories =
+    @(
+        (Join-Path $Root "bin")
+        (Join-Path $Root "obj")
+        $NativeBuildDir
+    )
+
+foreach ($Directory in $CleanupDirectories)
+{
+    if (Test-Path $Directory)
+    {
+        Remove-Item `
+            $Directory `
+            -Recurse `
+            -Force
+    }
+}
+
+Write-Host "Temporary build output cleaned." `
+    -ForegroundColor Green
+
+# ============================================================
 # Done
 # ============================================================
 
@@ -209,7 +331,6 @@ Write-Host "========================================" `
     -ForegroundColor Green
 
 Write-Host ""
-
 Write-Host "Installer:" `
     -ForegroundColor Green
 
