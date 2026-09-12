@@ -8,7 +8,7 @@ public sealed class MainForm : Form
     // Discord
     // =========================================================
 
-    private readonly DiscordSocialClient _discordClient;
+    private readonly DiscordPresenceService _discordPresence;
 
     // =========================================================
     // Supported applications
@@ -472,11 +472,11 @@ public sealed class MainForm : Form
         );
 
         // =====================================================
-        // Discord Social SDK
+        // Discord presence service
         // =====================================================
 
-        _discordClient =
-            new DiscordSocialClient();
+        _discordPresence =
+            new DiscordPresenceService();
 
         // =====================================================
         // UI events
@@ -520,7 +520,7 @@ public sealed class MainForm : Form
                 _settings
             );
 
-            if (!_discordClient.IsInitialized)
+            if (!_discordPresence.IsInitialized)
             {
                 return;
             }
@@ -596,7 +596,7 @@ public sealed class MainForm : Form
         // =====================================================
 
         var initialized =
-            _discordClient.Initialize();
+            _discordPresence.Initialize();
 
         if (initialized)
         {
@@ -632,7 +632,7 @@ public sealed class MainForm : Form
              * Khi game đang suspend SDK,
              * RunCallbacks() tự return.
              */
-            _discordClient.RunCallbacks();
+            _discordPresence.RunCallbacks();
 
             /*
              * Game override chạy đầu tiên để chặn
@@ -995,9 +995,9 @@ public sealed class MainForm : Form
             /*
              * Ngắt hoàn toàn Social SDK client.
              */
-            if (_discordClient.IsInitialized)
+            if (_discordPresence.IsInitialized)
             {
-                _discordClient.Suspend();
+                _discordPresence.Suspend();
             }
 
             SetStatus(
@@ -1027,7 +1027,7 @@ public sealed class MainForm : Form
          * Resume Social SDK client.
          */
         var reinitialized =
-            _discordClient.Reinitialize();
+            _discordPresence.Reinitialize();
 
         if (!reinitialized)
         {
@@ -1124,7 +1124,7 @@ public sealed class MainForm : Form
                 true;
 
             var reinitialized =
-                _discordClient.Reinitialize();
+                _discordPresence.Reinitialize();
 
             if (!reinitialized)
             {
@@ -1174,7 +1174,7 @@ public sealed class MainForm : Form
 
     private void SetPresence()
     {
-        if (!_discordClient.IsInitialized)
+        if (!_discordPresence.IsInitialized)
         {
             SetStatus(
                 "Discord chưa kết nối."
@@ -1227,28 +1227,11 @@ public sealed class MainForm : Form
         // -----------------------------------------------------
 
         var updated =
-            _discordClient.SetPresence(
-                name:
-                    profile.DisplayName,
-
-                details:
-                    projectName is not null
-                        ? $"Working on {projectName}"
-                        : null,
-
-                state:
-                    repositoryName is not null
-                        ? $"Repo: {repositoryName}"
-                        : "Repo: Not detected",
-
-                largeImage:
-                    profile.LargeImageKey,
-
-                largeText:
-                    profile.LargeImageText,
-
-                startTime:
-                    startTime
+            _discordPresence.SetDevelopmentPresence(
+                profile,
+                projectName,
+                repositoryName,
+                startTime
             );
 
         if (!updated)
@@ -1328,7 +1311,7 @@ public sealed class MainForm : Form
 
     private void SetIdlePresence()
     {
-        if (!_discordClient.IsInitialized)
+        if (!_discordPresence.IsInitialized)
         {
             SetStatus(
                 "Discord chưa kết nối."
@@ -1343,25 +1326,7 @@ public sealed class MainForm : Form
         }
 
         var updated =
-            _discordClient.SetPresence(
-                name:
-                    "Idle",
-
-                details:
-                    "Touching grass...",
-
-                state:
-                    "...allegedly",
-
-                largeImage:
-                    "idle_v2",
-
-                largeText:
-                    "Idle",
-
-                startTime:
-                    null
-            );
+            _discordPresence.SetIdlePresence();
 
         if (!updated)
         {
@@ -1386,7 +1351,7 @@ public sealed class MainForm : Form
 
     private void ClearPresence()
     {
-        if (!_discordClient.IsInitialized)
+        if (!_discordPresence.IsInitialized)
         {
             SetStatus(
                 "Discord chưa kết nối."
@@ -1395,9 +1360,7 @@ public sealed class MainForm : Form
             return;
         }
 
-        _discordClient.ClearPresence();
-
-        _discordClient.RunCallbacks();
+        _discordPresence.ClearPresence();
 
         SetStatus(
             "Presence cleared."
@@ -1527,7 +1490,7 @@ public sealed class MainForm : Form
 
         _detectionTimer.Dispose();
 
-        _discordClient.Dispose();
+        _discordPresence.Dispose();
 
         _trayIcon.Visible =
             false;
