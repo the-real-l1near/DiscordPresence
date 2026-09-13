@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace DiscordPresence;
 
-internal static class GameDetector
+internal sealed class GameDetector
 {
     // =========================================================
     // Win32
@@ -36,60 +36,96 @@ internal static class GameDetector
         out uint lpdwProcessId
     );
 
-    // =========================================================
-    // Constants
-    // =========================================================
+    [DllImport(
+        "user32.dll",
+        CharSet = CharSet.Unicode
+    )]
+    private static extern int GetWindowText(
+        IntPtr hWnd,
+        char[] lpString,
+        int nMaxCount
+    );
 
     private const uint MonitorDefaultToNearest =
         0x00000002;
 
     // =========================================================
-    // Excluded applications
+    // Services
+    // =========================================================
+
+    private readonly DiscordDetectableAppService
+        _detectableApps;
+
+    private readonly GameOverrideStore
+        _overrides;
+
+    // =========================================================
+    // Built-in exclusions
     // =========================================================
 
     /*
-     * Fullscreen app không đồng nghĩa với game.
+     * Đây chỉ là những process mình đủ chắc rằng
+     * không nên bao giờ auto-detect thành game.
      *
-     * Loại các app phổ biến có thể fullscreen
-     * nhưng không nên override presence.
+     * Unknown fullscreen app KHÔNG nằm đây sẽ thành
+     * Suspected và user tự quyết định.
      */
     private static readonly HashSet<string>
-        ExcludedProcesses =
+        BuiltInExclusions =
             new(StringComparer.OrdinalIgnoreCase)
             {
+                // Discord
                 "Discord",
                 "DiscordCanary",
                 "DiscordPTB",
 
+                // Windows
                 "explorer",
 
+                // Common browsers
                 "chrome",
                 "msedge",
                 "firefox",
 
-                "vlc",
-                "mpv",
-
+                // Supported development applications
                 "Code",
                 "idea64",
                 "blender",
                 "UnrealEditor",
 
+                // This application
                 "DiscordPresence"
             };
+
+    // =========================================================
+    // Constructor
+    // =========================================================
+
+    public GameDetector(
+        DiscordDetectableAppService detectableApps,
+        GameOverrideStore overrides)
+    {
+        _detectableApps =
+            detectableApps;
+
+        _overrides =
+            overrides;
+    }
 
     // =========================================================
     // Detection
     // =========================================================
 
-    public static bool IsForegroundGame()
+    public GameDetectionResult DetectForeground()
     {
         var window =
             GetForegroundWindow();
 
         if (window == IntPtr.Zero)
         {
-            return false;
+            return new GameDetectionResult(
+                GameDetectionKind.NotGame
+            );
         }
 
         GetWindowThreadProcessId(
@@ -99,7 +135,9 @@ internal static class GameDetector
 
         if (processId == 0)
         {
-            return false;
+            return new GameDetectionResult(
+                GameDetectionKind.NotGame
+            );
         }
 
         Process? process =
@@ -112,24 +150,111 @@ internal static class GameDetector
                     (int)processId
                 );
 
-            if (ExcludedProcesses.Contains(
-                process.ProcessName
+            var processName =
+                process.ProcessName;
+
+            var windowTitle =
+                GetWindowTitle(
+                    window
+                );
+
+            // -------------------------------------------------
+            // User explicitly said NO
+            // -------------------------------------------------
+
+            if (_overrides.IsExcluded(
+                processName
             ))
             {
-                return false;
+                return new GameDetectionResult(
+                    GameDetectionKind.NotGame,
+                    processName,
+                    windowTitle
+                );
             }
 
-            /*
-             * Hiện tại dùng fullscreen /
-             * borderless fullscreen làm tín hiệu game.
-             */
-            return IsFullscreenWindow(
+            // -------------------------------------------------
+            // User explicitly said YES
+            // -------------------------------------------------
+
+            if (_overrides.IsIncluded(
+                processName
+            ))
+            {
+                return new GameDetectionResult(
+                    GameDetectionKind.Game,
+                    processName,
+                    windowTitle
+                );
+            }
+
+            // -------------------------------------------------
+            // Known non-games
+            // -------------------------------------------------
+
+            if (BuiltInExclusions.Contains(
+                processName
+            ))
+            {
+                return new GameDetectionResult(
+                    GameDetectionKind.NotGame,
+                    processName,
+                    windowTitle
+                );
+            }
+
+            // -------------------------------------------------
+            // Discord detectable database
+            // -------------------------------------------------
+
+            if (_detectableApps.IsDetectableProcess(
+                processName
+            ))
+            {
+                return new GameDetectionResult(
+                    GameDetectionKind.Game,
+                    processName,
+                    windowTitle
+                );
+            }
+
+            // -------------------------------------------------
+            // Fullscreen / borderless heuristic
+            // -------------------------------------------------
+
+            if (IsFullscreenWindow(
                 window
+            ))
+            {
+                /*
+                 * Quan trọng:
+                 *
+                 * fullscreen != game.
+                 *
+                 * Chỉ yêu cầu user xác nhận.
+                 */
+                return new GameDetectionResult(
+                    GameDetectionKind.Suspected,
+                    processName,
+                    windowTitle
+                );
+            }
+
+            // -------------------------------------------------
+            // Not a game
+            // -------------------------------------------------
+
+            return new GameDetectionResult(
+                GameDetectionKind.NotGame,
+                processName,
+                windowTitle
             );
         }
         catch
         {
-            return false;
+            return new GameDetectionResult(
+                GameDetectionKind.NotGame
+            );
         }
         finally
         {
@@ -138,7 +263,44 @@ internal static class GameDetector
     }
 
     // =========================================================
-    // Fullscreen detection
+    // Window title
+    // =========================================================
+
+    private static string? GetWindowTitle(
+        IntPtr window)
+    {
+        var buffer =
+            new char[512];
+
+        var length =
+            GetWindowText(
+                window,
+                buffer,
+                buffer.Length
+            );
+
+        if (length <= 0)
+        {
+            return null;
+        }
+
+        var title =
+            new string(
+                buffer,
+                0,
+                length
+            )
+            .Trim();
+
+        return string.IsNullOrWhiteSpace(
+            title
+        )
+            ? null
+            : title;
+    }
+
+    // =========================================================
+    // Fullscreen / borderless
     // =========================================================
 
     private static bool IsFullscreenWindow(
@@ -146,7 +308,8 @@ internal static class GameDetector
     {
         if (!GetWindowRect(
             window,
-            out var windowRect))
+            out var windowRect
+        ))
         {
             return false;
         }
@@ -171,7 +334,8 @@ internal static class GameDetector
 
         if (!GetMonitorInfo(
             monitor,
-            ref monitorInfo))
+            ref monitorInfo
+        ))
         {
             return false;
         }
@@ -179,10 +343,6 @@ internal static class GameDetector
         var monitorRect =
             monitorInfo.rcMonitor;
 
-        /*
-         * Cho sai số vài pixel vì borderless
-         * window đôi khi lệch 1–2 px.
-         */
         const int tolerance =
             4;
 
@@ -209,7 +369,7 @@ internal static class GameDetector
     }
 
     // =========================================================
-    // Native structs
+    // Win32 structs
     // =========================================================
 
     [StructLayout(LayoutKind.Sequential)]

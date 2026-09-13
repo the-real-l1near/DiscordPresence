@@ -33,6 +33,23 @@ public sealed class MainForm : Form
     private readonly ContextMenuStrip
         _trayMenu;
 
+    private readonly ToolStripMenuItem
+        _traySuspectQuestionItem;
+
+    private readonly ToolStripMenuItem
+        _traySuspectYesItem;
+
+    private readonly ToolStripMenuItem
+        _traySuspectNoItem;
+
+    private readonly ToolStripMenuItem
+        _traySuspectLaterItem;
+
+    private readonly ToolStripSeparator
+        _traySuspectSeparator;
+
+    private Guid? _lastNotifiedSuspectId;
+
     private bool _isExiting;
 
     // =========================================================
@@ -48,11 +65,41 @@ public sealed class MainForm : Form
     private readonly Label
         _windowTitleLabel;
 
+    // Suspected game
+
+    private readonly Panel
+        _suspectedGamePanel;
+
+    private readonly Label
+        _suspectedGameNameLabel;
+
+    private readonly Label
+        _suspectedGameProcessLabel;
+
+    private readonly Button
+        _suspectedGameYesButton;
+
+    private readonly Button
+        _suspectedGameNoButton;
+
+    private readonly Button
+        _suspectedGameLaterButton;
+
+    // Settings
+
     private readonly CheckBox
         _startMinimizedCheckBox;
 
     private readonly CheckBox
         _startWithWindowsCheckBox;
+
+    // Actions / status
+
+    private readonly Button
+        _refreshButton;
+
+    private readonly Button
+        _clearButton;
 
     private readonly Label
         _statusLabel;
@@ -110,9 +157,9 @@ public sealed class MainForm : Form
         MaximizeBox =
             false;
 
-        // -----------------------------------------------------
-        // Detected project
-        // -----------------------------------------------------
+        // =====================================================
+        // Project
+        // =====================================================
 
         var projectTitleLabel =
             new Label
@@ -152,9 +199,9 @@ public sealed class MainForm : Form
                     )
             };
 
-        // -----------------------------------------------------
-        // Detected application
-        // -----------------------------------------------------
+        // =====================================================
+        // Application
+        // =====================================================
 
         var appTitleLabel =
             new Label
@@ -194,9 +241,9 @@ public sealed class MainForm : Form
                     )
             };
 
-        // -----------------------------------------------------
+        // =====================================================
         // Window title
-        // -----------------------------------------------------
+        // =====================================================
 
         var windowTitleTitleLabel =
             new Label
@@ -236,9 +283,179 @@ public sealed class MainForm : Form
                     true
             };
 
-        // -----------------------------------------------------
-        // Start minimized
-        // -----------------------------------------------------
+        // =====================================================
+        // Suspected game panel
+        // =====================================================
+
+        _suspectedGamePanel =
+            new Panel
+            {
+                Left =
+                    20,
+
+                Top =
+                    220,
+
+                Width =
+                    485,
+
+                Height =
+                    115,
+
+                BorderStyle =
+                    BorderStyle.FixedSingle,
+
+                Visible =
+                    false
+            };
+
+        var suspectedGameTitleLabel =
+            new Label
+            {
+                Text =
+                    "Suspected game",
+
+                Left =
+                    10,
+
+                Top =
+                    8,
+
+                Width =
+                    150,
+
+                Font =
+                    new Font(
+                        Font,
+                        FontStyle.Bold
+                    )
+            };
+
+        _suspectedGameNameLabel =
+            new Label
+            {
+                Text =
+                    "-",
+
+                Left =
+                    10,
+
+                Top =
+                    30,
+
+                Width =
+                    460,
+
+                AutoEllipsis =
+                    true
+            };
+
+        _suspectedGameProcessLabel =
+            new Label
+            {
+                Text =
+                    string.Empty,
+
+                Left =
+                    10,
+
+                Top =
+                    50,
+
+                Width =
+                    460,
+
+                ForeColor =
+                    SystemColors.GrayText,
+                
+                AutoEllipsis =
+                    true
+            };
+
+        _suspectedGameYesButton =
+            new Button
+            {
+                Text =
+                    "Yes",
+
+                Left =
+                    10,
+
+                Top =
+                    75,
+
+                Width =
+                    90,
+
+                Height =
+                    28
+            };
+
+        _suspectedGameNoButton =
+            new Button
+            {
+                Text =
+                    "No",
+
+                Left =
+                    110,
+
+                Top =
+                    75,
+
+                Width =
+                    90,
+
+                Height =
+                    28
+            };
+
+        _suspectedGameLaterButton =
+            new Button
+            {
+                Text =
+                    "Later",
+
+                Left =
+                    210,
+
+                Top =
+                    75,
+
+                Width =
+                    90,
+
+                Height =
+                    28
+            };
+
+        _suspectedGamePanel.Controls.Add(
+            suspectedGameTitleLabel
+        );
+
+        _suspectedGamePanel.Controls.Add(
+            _suspectedGameNameLabel
+        );
+
+        _suspectedGamePanel.Controls.Add(
+            _suspectedGameProcessLabel
+        );
+
+        _suspectedGamePanel.Controls.Add(
+            _suspectedGameYesButton
+        );
+
+        _suspectedGamePanel.Controls.Add(
+            _suspectedGameNoButton
+        );
+
+        _suspectedGamePanel.Controls.Add(
+            _suspectedGameLaterButton
+        );
+
+        // =====================================================
+        // Settings
+        // =====================================================
 
         _startMinimizedCheckBox =
             new CheckBox
@@ -249,19 +466,12 @@ public sealed class MainForm : Form
                 Left =
                     20,
 
-                Top =
-                    225,
-
                 Width =
                     180,
 
                 Checked =
                     _settings.StartMinimized
             };
-
-        // -----------------------------------------------------
-        // Start with Windows
-        // -----------------------------------------------------
 
         _startWithWindowsCheckBox =
             new CheckBox
@@ -272,9 +482,6 @@ public sealed class MainForm : Form
                 Left =
                     220,
 
-                Top =
-                    225,
-
                 Width =
                     180,
 
@@ -282,11 +489,11 @@ public sealed class MainForm : Form
                     StartupService.IsEnabled()
             };
 
-        // -----------------------------------------------------
-        // Refresh
-        // -----------------------------------------------------
+        // =====================================================
+        // Buttons
+        // =====================================================
 
-        var refreshButton =
+        _refreshButton =
             new Button
             {
                 Text =
@@ -295,9 +502,6 @@ public sealed class MainForm : Form
                 Left =
                     20,
 
-                Top =
-                    275,
-
                 Width =
                     140,
 
@@ -305,11 +509,7 @@ public sealed class MainForm : Form
                     35
             };
 
-        // -----------------------------------------------------
-        // Clear
-        // -----------------------------------------------------
-
-        var clearButton =
+        _clearButton =
             new Button
             {
                 Text =
@@ -318,9 +518,6 @@ public sealed class MainForm : Form
                 Left =
                     170,
 
-                Top =
-                    275,
-
                 Width =
                     100,
 
@@ -328,9 +525,9 @@ public sealed class MainForm : Form
                     35
             };
 
-        // -----------------------------------------------------
+        // =====================================================
         // Status
-        // -----------------------------------------------------
+        // =====================================================
 
         _statusLabel =
             new Label
@@ -341,15 +538,15 @@ public sealed class MainForm : Form
                 Left =
                     20,
 
-                Top =
-                    335,
-
                 Width =
-                    480
+                    480,
+
+                Height =
+                    30
             };
 
         // =====================================================
-        // Controls
+        // Add controls
         // =====================================================
 
         Controls.Add(
@@ -377,6 +574,10 @@ public sealed class MainForm : Form
         );
 
         Controls.Add(
+            _suspectedGamePanel
+        );
+
+        Controls.Add(
             _startMinimizedCheckBox
         );
 
@@ -385,11 +586,11 @@ public sealed class MainForm : Form
         );
 
         Controls.Add(
-            refreshButton
+            _refreshButton
         );
 
         Controls.Add(
-            clearButton
+            _clearButton
         );
 
         Controls.Add(
@@ -397,17 +598,32 @@ public sealed class MainForm : Form
         );
 
         // =====================================================
-        // UI events
+        // Main UI events
         // =====================================================
 
-        refreshButton.Click += (_, _) =>
+        _suspectedGameYesButton.Click += (_, _) =>
+        {
+            ResolveSuspectedGameYes();
+        };
+
+        _suspectedGameNoButton.Click += (_, _) =>
+        {
+            ResolveSuspectedGameNo();
+        };
+
+        _suspectedGameLaterButton.Click += (_, _) =>
+        {
+            ResolveSuspectedGameLater();
+        };
+
+        _refreshButton.Click += (_, _) =>
         {
             _presenceController.RefreshPresence();
 
             UpdatePresenceUi();
         };
 
-        clearButton.Click += (_, _) =>
+        _clearButton.Click += (_, _) =>
         {
             _presenceController.ClearPresence();
 
@@ -447,39 +663,55 @@ public sealed class MainForm : Form
         };
 
         // =====================================================
-        // Initialize presence
-        // =====================================================
-
-        _presenceController.Initialize();
-
-        UpdatePresenceUi();
-
-        // =====================================================
-        // Detection timer
-        // =====================================================
-
-        _detectionTimer =
-            new System.Windows.Forms.Timer
-            {
-                Interval =
-                    1000
-            };
-
-        _detectionTimer.Tick += (_, _) =>
-        {
-            _presenceController.Tick();
-
-            UpdatePresenceUi();
-        };
-
-        _detectionTimer.Start();
-
-        // =====================================================
         // Tray menu
         // =====================================================
 
         _trayMenu =
             new ContextMenuStrip();
+
+        _traySuspectQuestionItem =
+            new ToolStripMenuItem
+            {
+                Enabled =
+                    false,
+
+                Visible =
+                    false
+            };
+
+        _traySuspectYesItem =
+            new ToolStripMenuItem(
+                "Yes"
+            )
+            {
+                Visible =
+                    false
+            };
+
+        _traySuspectNoItem =
+            new ToolStripMenuItem(
+                "No"
+            )
+            {
+                Visible =
+                    false
+            };
+
+        _traySuspectLaterItem =
+            new ToolStripMenuItem(
+                "Later"
+            )
+            {
+                Visible =
+                    false
+            };
+
+        _traySuspectSeparator =
+            new ToolStripSeparator
+            {
+                Visible =
+                    false
+            };
 
         var openMenuItem =
             new ToolStripMenuItem(
@@ -495,6 +727,21 @@ public sealed class MainForm : Form
             new ToolStripMenuItem(
                 "Exit"
             );
+
+        _traySuspectYesItem.Click += (_, _) =>
+        {
+            ResolveSuspectedGameYes();
+        };
+
+        _traySuspectNoItem.Click += (_, _) =>
+        {
+            ResolveSuspectedGameNo();
+        };
+
+        _traySuspectLaterItem.Click += (_, _) =>
+        {
+            ResolveSuspectedGameLater();
+        };
 
         openMenuItem.Click += (_, _) =>
         {
@@ -512,6 +759,26 @@ public sealed class MainForm : Form
         {
             ExitApplication();
         };
+
+        _trayMenu.Items.Add(
+            _traySuspectQuestionItem
+        );
+
+        _trayMenu.Items.Add(
+            _traySuspectYesItem
+        );
+
+        _trayMenu.Items.Add(
+            _traySuspectNoItem
+        );
+
+        _trayMenu.Items.Add(
+            _traySuspectLaterItem
+        );
+
+        _trayMenu.Items.Add(
+            _traySuspectSeparator
+        );
 
         _trayMenu.Items.Add(
             openMenuItem
@@ -556,6 +823,36 @@ public sealed class MainForm : Form
         };
 
         // =====================================================
+        // Initialize controller
+        // =====================================================
+
+        _presenceController.Initialize();
+
+        UpdatePresenceUi();
+
+        // =====================================================
+        // Timer
+        // =====================================================
+
+        _detectionTimer =
+            new System.Windows.Forms.Timer
+            {
+                Interval =
+                    1000
+            };
+
+        _detectionTimer.Tick += (_, _) =>
+        {
+            _presenceController.Tick();
+
+            UpdatePresenceUi();
+
+            NotifyNewSuspectedGame();
+        };
+
+        _detectionTimer.Start();
+
+        // =====================================================
         // Window events
         // =====================================================
 
@@ -571,6 +868,67 @@ public sealed class MainForm : Form
                 );
             }
         };
+    }
+
+    // =========================================================
+    // Suspected game actions
+    // =========================================================
+
+    private void ResolveSuspectedGameYes()
+    {
+        _presenceController
+            .ConfirmSuspectedGame();
+
+        UpdatePresenceUi();
+    }
+
+    private void ResolveSuspectedGameNo()
+    {
+        _presenceController
+            .RejectSuspectedGame();
+
+        UpdatePresenceUi();
+    }
+
+    private void ResolveSuspectedGameLater()
+    {
+        _presenceController
+            .DeferSuspectedGame();
+
+        UpdatePresenceUi();
+    }
+
+    // =========================================================
+    // Notification
+    // =========================================================
+
+    private void NotifyNewSuspectedGame()
+    {
+        var suspect =
+            _presenceController
+                .PendingSuspectedGame;
+
+        if (suspect is null)
+        {
+            return;
+        }
+
+        if (_lastNotifiedSuspectId ==
+            suspect.Id)
+        {
+            return;
+        }
+
+        _lastNotifiedSuspectId =
+            suspect.Id;
+
+        _trayIcon.ShowBalloonTip(
+            5000,
+            "Suspected game detected",
+            $"Is \"{suspect.ProcessName}.exe\" a game?\n" +
+            "Right-click the tray icon to confirm.",
+            ToolTipIcon.Info
+        );
     }
 
     // =========================================================
@@ -594,10 +952,109 @@ public sealed class MainForm : Form
         _statusLabel.Text =
             _presenceController
                 .StatusText;
+
+        UpdateSuspectedGameUi();
     }
 
     // =========================================================
-    // Tray
+    // Suspected game UI
+    // =========================================================
+
+    private void UpdateSuspectedGameUi()
+    {
+        var suspect =
+            _presenceController
+                .PendingSuspectedGame;
+
+        var hasSuspect =
+            suspect is not null;
+
+        _suspectedGamePanel.Visible =
+            hasSuspect;
+
+        if (suspect is not null)
+        {
+            _suspectedGameNameLabel.Text =
+                $"Is \"{suspect.ProcessName}.exe\" a game?";
+
+            _suspectedGameProcessLabel.Text =
+                string.IsNullOrWhiteSpace(
+                    suspect.WindowTitle
+                )
+                    ? "Window: -"
+                    : $"Window: {suspect.WindowTitle}";
+
+            _traySuspectQuestionItem.Text =
+                $"Is \"{suspect.ProcessName}.exe\" a game?";
+        }
+
+        // -----------------------------------------------------
+        // Tray suspect block
+        // -----------------------------------------------------
+
+        _traySuspectQuestionItem.Visible =
+            hasSuspect;
+
+        _traySuspectYesItem.Visible =
+            hasSuspect;
+
+        _traySuspectNoItem.Visible =
+            hasSuspect;
+
+        _traySuspectLaterItem.Visible =
+            hasSuspect;
+
+        _traySuspectSeparator.Visible =
+            hasSuspect;
+
+        // -----------------------------------------------------
+        // Dynamic window layout
+        // -----------------------------------------------------
+
+        if (hasSuspect)
+        {
+            _startMinimizedCheckBox.Top =
+                350;
+
+            _startWithWindowsCheckBox.Top =
+                350;
+
+            _refreshButton.Top =
+                395;
+
+            _clearButton.Top =
+                395;
+
+            _statusLabel.Top =
+                450;
+
+            Height =
+                530;
+        }
+        else
+        {
+            _startMinimizedCheckBox.Top =
+                225;
+
+            _startWithWindowsCheckBox.Top =
+                225;
+
+            _refreshButton.Top =
+                275;
+
+            _clearButton.Top =
+                275;
+
+            _statusLabel.Top =
+                335;
+
+            Height =
+                430;
+        }
+    }
+
+    // =========================================================
+    // Tray window
     // =========================================================
 
     private void HideToTray()

@@ -17,6 +17,15 @@ internal sealed class PresenceController : IDisposable
     private readonly SupportedAppRegistry
         _supportedApps;
 
+    private readonly DiscordDetectableAppService
+        _detectableApps;
+
+    private readonly GameOverrideStore
+        _gameOverrides;
+
+    private readonly GameDetector
+        _gameDetector;
+
     // =========================================================
     // Discord recovery
     // =========================================================
@@ -53,6 +62,27 @@ internal sealed class PresenceController : IDisposable
     private bool _isGameOverrideActive;
 
     // =========================================================
+    // Suspected games
+    // =========================================================
+
+    private static readonly TimeSpan
+        SuspectDeferDuration =
+            TimeSpan.FromMinutes(30);
+
+    private readonly Dictionary<string, DateTime>
+        _deferredSuspects =
+            new(StringComparer.OrdinalIgnoreCase);
+
+    public SuspectedGame? PendingSuspectedGame
+    {
+        get;
+        private set;
+    }
+
+    public bool HasPendingSuspectedGame =>
+        PendingSuspectedGame is not null;
+
+    // =========================================================
     // UI state
     // =========================================================
 
@@ -79,6 +109,18 @@ internal sealed class PresenceController : IDisposable
 
         _supportedApps =
             new SupportedAppRegistry();
+
+        _detectableApps =
+            new DiscordDetectableAppService();
+
+        _gameOverrides =
+            new GameOverrideStore();
+
+        _gameDetector =
+            new GameDetector(
+                _detectableApps,
+                _gameOverrides
+            );
 
         _discordPresence =
             new DiscordPresenceService();
@@ -124,13 +166,93 @@ internal sealed class PresenceController : IDisposable
     {
         _discordPresence.RunCallbacks();
 
-        HandleGameOverride();
+        HandleGameDetection();
 
         DetectActiveApp();
 
         HandlePendingIdlePresence();
 
         HandleDiscordPresenceRecovery();
+    }
+
+    // =========================================================
+    // Suspected game decisions
+    // =========================================================
+
+    public void ConfirmSuspectedGame()
+    {
+        var suspect =
+            PendingSuspectedGame;
+
+        if (suspect is null)
+        {
+            return;
+        }
+
+        _gameOverrides.Include(
+            suspect.ProcessName
+        );
+
+        _deferredSuspects.Remove(
+            suspect.ProcessName
+        );
+
+        PendingSuspectedGame =
+            null;
+
+        SetStatus(
+            $"Game confirmed: {suspect.DisplayName}"
+        );
+    }
+
+    public void RejectSuspectedGame()
+    {
+        var suspect =
+            PendingSuspectedGame;
+
+        if (suspect is null)
+        {
+            return;
+        }
+
+        _gameOverrides.Exclude(
+            suspect.ProcessName
+        );
+
+        _deferredSuspects.Remove(
+            suspect.ProcessName
+        );
+
+        PendingSuspectedGame =
+            null;
+
+        SetStatus(
+            $"Ignored as game: {suspect.DisplayName}"
+        );
+    }
+
+    public void DeferSuspectedGame()
+    {
+        var suspect =
+            PendingSuspectedGame;
+
+        if (suspect is null)
+        {
+            return;
+        }
+
+        _deferredSuspects[
+            suspect.ProcessName
+        ] =
+            DateTime.UtcNow +
+            SuspectDeferDuration;
+
+        PendingSuspectedGame =
+            null;
+
+        SetStatus(
+            $"Game confirmation deferred: {suspect.DisplayName}"
+        );
     }
 
     // =========================================================
@@ -190,7 +312,192 @@ internal sealed class PresenceController : IDisposable
     }
 
     // =========================================================
-    // Detection
+    // Game detection
+    // =========================================================
+
+    private void HandleGameDetection()
+    {
+        var result =
+            _gameDetector.DetectForeground();
+
+        switch (result.Kind)
+        {
+            case GameDetectionKind.Game:
+                HandleConfirmedGame(
+                    result
+                );
+                break;
+
+            case GameDetectionKind.Suspected:
+                HandleSuspectedGame(
+                    result
+                );
+
+                RestoreFromGameOverrideIfNeeded();
+                break;
+
+            case GameDetectionKind.NotGame:
+            default:
+                RestoreFromGameOverrideIfNeeded();
+                break;
+        }
+    }
+
+    private void HandleConfirmedGame(
+        GameDetectionResult result)
+    {
+        /*
+         * Nếu user vừa confirm một pending suspect,
+         * nó không còn cần xuất hiện trong UI.
+         */
+        if (
+            PendingSuspectedGame is not null &&
+            string.Equals(
+                PendingSuspectedGame.ProcessName,
+                result.ProcessName,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            PendingSuspectedGame =
+                null;
+        }
+
+        if (_isGameOverrideActive)
+        {
+            return;
+        }
+
+        _isGameOverrideActive =
+            true;
+
+        CancelPendingIdlePresence();
+
+        _discordPresenceRetryTicksRemaining =
+            0;
+
+        if (_discordPresence.IsInitialized)
+        {
+            _discordPresence.Suspend();
+        }
+
+        SetStatus(
+            result.ProcessName is not null
+                ? $"Game detected: {result.DisplayName}"
+                : "Game detected · Presence suspended"
+        );
+    }
+
+    private void HandleSuspectedGame(
+        GameDetectionResult result)
+    {
+        var processName =
+            result.ProcessName;
+
+        if (string.IsNullOrWhiteSpace(
+            processName
+        ))
+        {
+            return;
+        }
+
+        // -----------------------------------------------------
+        // Deferred?
+        // -----------------------------------------------------
+
+        if (_deferredSuspects.TryGetValue(
+            processName,
+            out var deferredUntil
+        ))
+        {
+            if (DateTime.UtcNow <
+                deferredUntil)
+            {
+                return;
+            }
+
+            _deferredSuspects.Remove(
+                processName
+            );
+        }
+
+        // -----------------------------------------------------
+        // Already pending
+        // -----------------------------------------------------
+
+        if (
+            PendingSuspectedGame is not null &&
+            string.Equals(
+                PendingSuspectedGame.ProcessName,
+                processName,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            return;
+        }
+
+        // -----------------------------------------------------
+        // New suspect
+        // -----------------------------------------------------
+
+        PendingSuspectedGame =
+            new SuspectedGame(
+                Guid.NewGuid(),
+                processName,
+                result.DisplayName,
+                result.WindowTitle
+            );
+
+        SetStatus(
+            $"Suspected game: {result.DisplayName}"
+        );
+    }
+
+    private void RestoreFromGameOverrideIfNeeded()
+    {
+        if (!_isGameOverrideActive)
+        {
+            return;
+        }
+
+        _isGameOverrideActive =
+            false;
+
+        var reinitialized =
+            _discordPresence.Reinitialize();
+
+        if (!reinitialized)
+        {
+            SetStatus(
+                "Discord Social SDK: reinitialization failed"
+            );
+
+            return;
+        }
+
+        _wasDiscordRunning =
+            IsDiscordRunning();
+
+        _discordPresenceRetryTicksRemaining =
+            _wasDiscordRunning
+                ? DiscordPresenceRetryTicks
+                : 0;
+
+        if (_workSession.IsIdle)
+        {
+            _workSession.InvalidateIdlePresence();
+
+            SetIdlePresence();
+        }
+        else
+        {
+            SetPresence();
+        }
+    }
+
+    // =========================================================
+    // App detection
     // =========================================================
 
     private void DetectActiveApp()
@@ -211,10 +518,6 @@ internal sealed class PresenceController : IDisposable
             return;
         }
 
-        /*
-         * Nếu supported app quay lại trong lúc đang
-         * chờ Idle thì hủy Idle transition.
-         */
         if (_supportedApps.IsSupportedProcess(
             activeApp.ProcessName
         ))
@@ -222,10 +525,6 @@ internal sealed class PresenceController : IDisposable
             CancelPendingIdlePresence();
         }
 
-        /*
-         * Foreground không phải supported app:
-         * giữ active presence gần nhất.
-         */
         if (!_supportedApps.TryGetProfile(
             activeApp.ProcessName,
             out var profile))
@@ -318,9 +617,6 @@ internal sealed class PresenceController : IDisposable
             return;
         }
 
-        /*
-         * Coding presence luôn có elapsed timestamp.
-         */
         _workSession.EnsureStarted();
 
         var startTime =
@@ -357,7 +653,7 @@ internal sealed class PresenceController : IDisposable
     }
 
     // =========================================================
-    // Idle transition
+    // Idle
     // =========================================================
 
     private void EnterIdle()
@@ -393,10 +689,6 @@ internal sealed class PresenceController : IDisposable
             return;
         }
 
-        /*
-         * Startup / đã Idle sẵn:
-         * không cần clear active presence.
-         */
         if (!wasActive)
         {
             SetIdlePresence();
@@ -404,12 +696,6 @@ internal sealed class PresenceController : IDisposable
             return;
         }
 
-        /*
-         * Active -> Idle:
-         *
-         * Coding presence có timestamp nên clear
-         * trước, tick sau mới publish Idle.
-         */
         _discordPresence.ClearPresence();
 
         _idlePresencePending =
@@ -443,9 +729,6 @@ internal sealed class PresenceController : IDisposable
             return;
         }
 
-        /*
-         * Supported app đã quay lại.
-         */
         if (!_workSession.IsIdle)
         {
             CancelPendingIdlePresence();
@@ -477,10 +760,6 @@ internal sealed class PresenceController : IDisposable
         _idlePresenceDelayTicks =
             0;
     }
-
-    // =========================================================
-    // Idle presence
-    // =========================================================
 
     private void SetIdlePresence()
     {
@@ -527,94 +806,6 @@ internal sealed class PresenceController : IDisposable
 
         WindowTitle =
             "-";
-    }
-
-    // =========================================================
-    // Game override
-    // =========================================================
-
-    private void HandleGameOverride()
-    {
-        var gameRunning =
-            GameDetector.IsForegroundGame();
-
-        // -----------------------------------------------------
-        // Enter game
-        // -----------------------------------------------------
-
-        if (gameRunning)
-        {
-            if (_isGameOverrideActive)
-            {
-                return;
-            }
-
-            _isGameOverrideActive =
-                true;
-
-            CancelPendingIdlePresence();
-
-            _discordPresenceRetryTicksRemaining =
-                0;
-
-            if (_discordPresence.IsInitialized)
-            {
-                _discordPresence.Suspend();
-            }
-
-            SetStatus(
-                "Game detected · Presence suspended"
-            );
-
-            return;
-        }
-
-        // -----------------------------------------------------
-        // No active override
-        // -----------------------------------------------------
-
-        if (!_isGameOverrideActive)
-        {
-            return;
-        }
-
-        // -----------------------------------------------------
-        // Leave game
-        // -----------------------------------------------------
-
-        _isGameOverrideActive =
-            false;
-
-        var reinitialized =
-            _discordPresence.Reinitialize();
-
-        if (!reinitialized)
-        {
-            SetStatus(
-                "Discord Social SDK: reinitialization failed"
-            );
-
-            return;
-        }
-
-        _wasDiscordRunning =
-            IsDiscordRunning();
-
-        _discordPresenceRetryTicksRemaining =
-            _wasDiscordRunning
-                ? DiscordPresenceRetryTicks
-                : 0;
-
-        if (_workSession.IsIdle)
-        {
-            _workSession.InvalidateIdlePresence();
-
-            SetIdlePresence();
-        }
-        else
-        {
-            SetPresence();
-        }
     }
 
     // =========================================================
