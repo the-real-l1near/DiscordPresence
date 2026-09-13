@@ -2,15 +2,8 @@ namespace DiscordPresence;
 
 internal sealed class DiscordPresenceService : IDisposable
 {
-    // =========================================================
-    // Client
-    // =========================================================
-
-    private readonly DiscordSocialClient _client;
-
-    // =========================================================
-    // Properties
-    // =========================================================
+    private readonly DiscordSocialClient
+        _client;
 
     public bool IsInitialized =>
         _client.IsInitialized;
@@ -57,11 +50,10 @@ internal sealed class DiscordPresenceService : IDisposable
         AppPresenceProfile profile,
         string? projectName,
         string? repositoryName,
-        DateTime? startTime)
+        DateTime startTime)
     {
         return _client.SetPresence(
-            name:
-                profile.DisplayName,
+            name: profile.DisplayName,
 
             details:
                 projectName is not null
@@ -91,23 +83,12 @@ internal sealed class DiscordPresenceService : IDisposable
     public bool SetIdlePresence()
     {
         return _client.SetPresence(
-            name:
-                "Idle",
-
-            details:
-                "Touching grass...",
-
-            state:
-                "...allegedly",
-
-            largeImage:
-                "idle_v2",
-
-            largeText:
-                "Idle",
-
-            startTime:
-                null
+            name: "Idle",
+            details: "Touching grass...",
+            state: "...allegedly",
+            largeImage: "idle_v2",
+            largeText: "Idle",
+            startTime: null
         );
     }
 

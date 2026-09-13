@@ -19,10 +19,6 @@ internal sealed class DiscordSocialClient : IDisposable
 
     private bool _disposed;
 
-    // =========================================================
-    // Properties
-    // =========================================================
-
     public bool IsInitialized =>
         _initialized &&
         !_disposed;
@@ -62,12 +58,6 @@ internal sealed class DiscordSocialClient : IDisposable
             this
         );
 
-        /*
-         * Client cũ có thể được tạo khi Discord chưa chạy
-         * hoặc đã mất local connection sau Discord restart.
-         *
-         * Tạo lại native client hoàn toàn.
-         */
         if (_initialized)
         {
             Native.DiscordSocial_Shutdown();
@@ -100,22 +90,10 @@ internal sealed class DiscordSocialClient : IDisposable
             return;
         }
 
-        /*
-         * Clear Rich Presence trước.
-         */
         Native.DiscordSocial_ClearActivity();
 
-        /*
-         * Pump một lượt trước khi shutdown.
-         */
         Native.DiscordSocial_RunCallbacks();
 
-        /*
-         * Ngắt hoàn toàn native Social SDK client.
-         *
-         * Dùng khi game đang foreground để app mình
-         * không giữ activity Coding.
-         */
         Native.DiscordSocial_Shutdown();
 
         _initialized =
@@ -153,7 +131,7 @@ internal sealed class DiscordSocialClient : IDisposable
                 new DateTimeOffset(
                     startTime.Value.ToUniversalTime()
                 )
-                .ToUnixTimeSeconds();
+                .ToUnixTimeMilliseconds();
         }
 
         return Native.DiscordSocial_SetActivity(

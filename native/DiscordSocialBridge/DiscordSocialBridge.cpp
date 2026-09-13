@@ -190,13 +190,21 @@ extern "C"
                 discordpp::ActivityTimestamps timestamps;
 
                 timestamps.SetStart(
-                    startTimestamp
+                    static_cast<uint64_t>(
+                        startTimestamp
+                    )
                 );
 
                 activity.SetTimestamps(
                     std::move(
                         timestamps
                     )
+                );
+            }
+            else
+            {
+                activity.SetTimestamps(
+                    std::nullopt
                 );
             }
 
@@ -211,10 +219,6 @@ extern "C"
 
                 [](discordpp::ClientResult result)
                 {
-                    /*
-                     * Async result hiện chưa expose
-                     * sang C#.
-                     */
                     (void)result;
                 }
             );
@@ -241,13 +245,6 @@ extern "C"
 
         try
         {
-            /*
-             * Dùng API clear chính thức của
-             * Discord Social SDK.
-             *
-             * Không gửi một Activity rỗng bằng
-             * UpdateRichPresence().
-             */
             g_client->ClearRichPresence();
         }
         catch (...)
@@ -276,15 +273,6 @@ extern "C"
 
     void DiscordSocial_Shutdown()
     {
-        /*
-         * Destroy native Client hoàn toàn.
-         *
-         * C# dùng cái này cho:
-         *
-         * - Discord restart recovery
-         * - game override Suspend()
-         * - application shutdown
-         */
         g_client.reset();
 
         g_initialized =
