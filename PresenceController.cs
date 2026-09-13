@@ -5,38 +5,6 @@ namespace DiscordPresence;
 internal sealed class PresenceController : IDisposable
 {
     // =========================================================
-    // Supported applications
-    // =========================================================
-
-    private static readonly Dictionary<string, AppPresenceProfile>
-        AppProfiles = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Code"] = new(
-                "Visual Studio Code",
-                "vscode",
-                "Visual Studio Code"
-            ),
-
-            ["blender"] = new(
-                "Blender",
-                "blender",
-                "Blender"
-            ),
-
-            ["UnrealEditor"] = new(
-                "Unreal Engine",
-                "unreal_v2",
-                "Unreal Engine"
-            ),
-
-            ["idea64"] = new(
-                "IntelliJ IDEA",
-                "intellij",
-                "IntelliJ IDEA"
-            )
-        };
-
-    // =========================================================
     // Services
     // =========================================================
 
@@ -45,6 +13,9 @@ internal sealed class PresenceController : IDisposable
 
     private readonly WorkSessionManager
         _workSession;
+
+    private readonly SupportedAppRegistry
+        _supportedApps;
 
     // =========================================================
     // Discord recovery
@@ -106,6 +77,9 @@ internal sealed class PresenceController : IDisposable
         _workSession =
             new WorkSessionManager();
 
+        _supportedApps =
+            new SupportedAppRegistry();
+
         _discordPresence =
             new DiscordPresenceService();
     }
@@ -135,10 +109,6 @@ internal sealed class PresenceController : IDisposable
             "Discord Social SDK: initialized"
         );
 
-        /*
-         * Initial Idle không cần clear trước vì chưa có
-         * coding presence từ instance hiện tại.
-         */
         _workSession.EnterIdle();
 
         SetIdleUi();
@@ -210,10 +180,6 @@ internal sealed class PresenceController : IDisposable
             return;
         }
 
-        /*
-         * Manual clear không được tự publish Idle
-         * ở tick kế tiếp.
-         */
         CancelPendingIdlePresence();
 
         _discordPresence.ClearPresence();
@@ -229,7 +195,7 @@ internal sealed class PresenceController : IDisposable
 
     private void DetectActiveApp()
     {
-        if (!HasSupportedAppRunning())
+        if (!_supportedApps.HasSupportedAppRunning())
         {
             EnterIdle();
 
@@ -246,12 +212,10 @@ internal sealed class PresenceController : IDisposable
         }
 
         /*
-         * Một supported app xuất hiện trong lúc đang chờ
-         * publish Idle.
-         *
-         * Hủy Idle transition vì active state có priority.
+         * Nếu supported app quay lại trong lúc đang
+         * chờ Idle thì hủy Idle transition.
          */
-        if (AppProfiles.ContainsKey(
+        if (_supportedApps.IsSupportedProcess(
             activeApp.ProcessName
         ))
         {
@@ -262,7 +226,7 @@ internal sealed class PresenceController : IDisposable
          * Foreground không phải supported app:
          * giữ active presence gần nhất.
          */
-        if (!AppProfiles.TryGetValue(
+        if (!_supportedApps.TryGetProfile(
             activeApp.ProcessName,
             out var profile))
         {
@@ -324,59 +288,6 @@ internal sealed class PresenceController : IDisposable
         }
 
         SetPresence();
-    }
-
-    // =========================================================
-    // Supported applications
-    // =========================================================
-
-    private static bool HasSupportedAppRunning()
-    {
-        Process[] processes;
-
-        try
-        {
-            processes =
-                Process.GetProcesses();
-        }
-        catch
-        {
-            return false;
-        }
-
-        try
-        {
-            foreach (var process in processes)
-            {
-                try
-                {
-                    if (!AppProfiles.ContainsKey(
-                        process.ProcessName
-                    ))
-                    {
-                        continue;
-                    }
-
-                    if (process.MainWindowHandle !=
-                        IntPtr.Zero)
-                    {
-                        return true;
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            return false;
-        }
-        finally
-        {
-            foreach (var process in processes)
-            {
-                process.Dispose();
-            }
-        }
     }
 
     // =========================================================
@@ -451,17 +362,11 @@ internal sealed class PresenceController : IDisposable
 
     private void EnterIdle()
     {
-        /*
-         * Đang chờ Idle rồi thì không clear lại mỗi tick.
-         */
         if (_idlePresencePending)
         {
             return;
         }
 
-        /*
-         * Đã Idle và Idle presence cũng đã gửi rồi.
-         */
         if (!_workSession.ShouldEnterIdle())
         {
             return;
@@ -490,7 +395,7 @@ internal sealed class PresenceController : IDisposable
 
         /*
          * Startup / đã Idle sẵn:
-         * không có active timestamp cần clear.
+         * không cần clear active presence.
          */
         if (!wasActive)
         {
@@ -502,9 +407,8 @@ internal sealed class PresenceController : IDisposable
         /*
          * Active -> Idle:
          *
-         * Coding activity trước có timestamp.
-         * Clear hẳn trước để Discord bỏ activity cũ,
-         * sau đó tick kế mới publish Idle.
+         * Coding presence có timestamp nên clear
+         * trước, tick sau mới publish Idle.
          */
         _discordPresence.ClearPresence();
 
@@ -540,8 +444,7 @@ internal sealed class PresenceController : IDisposable
         }
 
         /*
-         * Nếu một supported app đã quay lại,
-         * Idle transition không còn hợp lệ.
+         * Supported app đã quay lại.
          */
         if (!_workSession.IsIdle)
         {
@@ -667,7 +570,7 @@ internal sealed class PresenceController : IDisposable
         }
 
         // -----------------------------------------------------
-        // Still normal
+        // No active override
         // -----------------------------------------------------
 
         if (!_isGameOverrideActive)
