@@ -21,16 +21,6 @@ internal static class UiAssets
     // Cache
     // =========================================================
 
-    private static readonly Dictionary<
-        (string FileName, int Size),
-        Image>
-        Cache =
-            new();
-
-    private static readonly object
-        CacheLock =
-            new();
-
     // =========================================================
     // Section icons
     // =========================================================
@@ -93,6 +83,16 @@ internal static class UiAssets
         );
     }
 
+    public static Image RefreshHover(int size)
+    {
+        return Get("refresh-hover.svg", size);
+    }
+
+    public static Image TrashHover(int size)
+    {
+        return Get("trash-hover.svg", size);
+    }
+
     public static Image Trash(
         int size)
     {
@@ -141,41 +141,9 @@ internal static class UiAssets
         string fileName,
         int size)
     {
-        if (size <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(size),
-                "Icon size must be greater than zero."
-            );
-        }
-
-        var key =
-            (
-                FileName: fileName,
-                Size: size
-            );
-
-        lock (CacheLock)
-        {
-            if (Cache.TryGetValue(
-                key,
-                out var cachedImage
-            ))
-            {
-                return cachedImage;
-            }
-
-            var image =
-                RenderSvg(
-                    fileName,
-                    size
-                );
-
-            Cache[key] =
-                image;
-
-            return image;
-        }
+        if (size <= 0) throw new ArgumentOutOfRangeException(nameof(size));
+        return AppCacheService.Shared.GetImage("svg:" + fileName + ":" + size,
+            () => RenderSvg(fileName, size));
     }
 
     // =========================================================
@@ -367,15 +335,6 @@ internal static class UiAssets
 
     public static void Dispose()
     {
-        lock (CacheLock)
-        {
-            foreach (var image in
-                Cache.Values)
-            {
-                image.Dispose();
-            }
-
-            Cache.Clear();
-        }
+        AppCacheService.Shared.Dispose();
     }
 }

@@ -1,413 +1,114 @@
 namespace DiscordPresence;
 
-internal sealed class GameOverridesForm : Form
+internal sealed partial class GameOverridesForm : Form
 {
-    private readonly PresenceController
-        _presenceController;
+    private readonly PresenceController _presenceController = null!;
+    private readonly System.Windows.Forms.Timer? _refreshTimer;
+    private bool _isUpdatingSelection;
+    private readonly Dictionary<(ListBox List, int Index), Image> _paintedIcons = new();
+    private string[] _lastIncludedSnapshot = [];
+    private string[] _lastExcludedSnapshot = [];
 
-    private readonly ListBox
-        _includedList;
-
-    private readonly ListBox
-        _excludedList;
-
-    private readonly Button
-        _moveSelectedButton;
-
-    private readonly System.Windows.Forms.Timer
-        _refreshTimer;
-
-    private bool
-        _isUpdatingSelection;
-
-    private string[]
-        _lastIncludedSnapshot =
-            [];
-
-    private string[]
-        _lastExcludedSnapshot =
-            [];
-
-    // =========================================================
-    // Constructor
-    // =========================================================
-
-    public GameOverridesForm(
-        PresenceController presenceController)
+    // Designer creates the form without starting application services.
+    public GameOverridesForm()
     {
-        _presenceController =
-            presenceController;
-
-        // -----------------------------------------------------
-        // Window
-        // -----------------------------------------------------
-
-        Text =
-            "Game Overrides";
-
-        Width =
-            600;
-
-        Height =
-            460;
-
-        StartPosition =
-            FormStartPosition.CenterParent;
-
-        FormBorderStyle =
-            FormBorderStyle.FixedDialog;
-
-        MaximizeBox =
-            false;
-
-        MinimizeBox =
-            false;
-
-        // -----------------------------------------------------
-        // Included label
-        // -----------------------------------------------------
-
-        var includedLabel =
-            new Label
-            {
-                Text =
-                    "Always treat as game",
-
-                Left =
-                    20,
-
-                Top =
-                    20,
-
-                Width =
-                    220,
-
-                Font =
-                    new Font(
-                        Font,
-                        FontStyle.Bold
-                    )
-            };
-
-        // -----------------------------------------------------
-        // Included list
-        // -----------------------------------------------------
-
-        _includedList =
-            new ListBox
-            {
-                Left =
-                    20,
-
-                Top =
-                    45,
-
-                Width =
-                    230,
-
-                Height =
-                    250,
-
-                SelectionMode =
-                    SelectionMode.MultiExtended
-            };
-
-        // -----------------------------------------------------
-        // Excluded label
-        // -----------------------------------------------------
-
-        var excludedLabel =
-            new Label
-            {
-                Text =
-                    "Never treat as game",
-
-                Left =
-                    330,
-
-                Top =
-                    20,
-
-                Width =
-                    220,
-
-                Font =
-                    new Font(
-                        Font,
-                        FontStyle.Bold
-                    )
-            };
-
-        // -----------------------------------------------------
-        // Excluded list
-        // -----------------------------------------------------
-
-        _excludedList =
-            new ListBox
-            {
-                Left =
-                    330,
-
-                Top =
-                    45,
-
-                Width =
-                    230,
-
-                Height =
-                    250,
-
-                SelectionMode =
-                    SelectionMode.MultiExtended
-            };
-
-        // -----------------------------------------------------
-        // Move button
-        // -----------------------------------------------------
-
-        _moveSelectedButton =
-            new Button
-            {
-                Text =
-                    "<<",
-
-                Left =
-                    265,
-
-                Top =
-                    145,
-
-                Width =
-                    50,
-
-                Height =
-                    36,
-
-                Enabled =
-                    false
-            };
-
-        _moveSelectedButton.Click += (_, _) =>
+        // Keep initialization atomic so font/DPI scaling runs only after
+        // the final font, client size and child bounds have all been set.
+        SuspendLayout();
+        try
         {
-            MoveSelectedItems();
-        };
-
-        // -----------------------------------------------------
-        // Selection events
-        // -----------------------------------------------------
-
-        _includedList.SelectedIndexChanged += (_, _) =>
+            InitializeComponent();
+        }
+        finally
         {
-            HandleIncludedSelectionChanged();
-        };
+            ResumeLayout(true);
+        }
+    }
 
-        _excludedList.SelectedIndexChanged += (_, _) =>
+    public GameOverridesForm(PresenceController presenceController) : this()
+    {
+        _presenceController = presenceController;
+        _headerIcon.Image = UiAssets.Gamepad(48);
+        _moveSelectedButton.Click += (_, _) => MoveSelectedItems();
+        _includedList.SelectedIndexChanged += (_, _) => HandleIncludedSelectionChanged();
+        _excludedList.SelectedIndexChanged += (_, _) => HandleExcludedSelectionChanged();
+        _removeIncludedButton.Click += (_, _) => RemoveSelectedIncluded();
+        _removeExcludedButton.Click += (_, _) => RemoveSelectedExcluded();
+        _clearAllButton.Click += (_, _) =>
         {
-            HandleExcludedSelectionChanged();
-        };
-
-        // -----------------------------------------------------
-        // Remove included
-        // -----------------------------------------------------
-
-        var removeIncludedButton =
-            new Button
-            {
-                Text =
-                    "Remove selected",
-
-                Left =
-                    20,
-
-                Top =
-                    310,
-
-                Width =
-                    140,
-
-                Height =
-                    32
-            };
-
-        removeIncludedButton.Click += (_, _) =>
-        {
-            RemoveSelectedIncluded();
-        };
-
-        // -----------------------------------------------------
-        // Remove excluded
-        // -----------------------------------------------------
-
-        var removeExcludedButton =
-            new Button
-            {
-                Text =
-                    "Remove selected",
-
-                Left =
-                    330,
-
-                Top =
-                    310,
-
-                Width =
-                    140,
-
-                Height =
-                    32
-            };
-
-        removeExcludedButton.Click += (_, _) =>
-        {
-            RemoveSelectedExcluded();
-        };
-
-        // -----------------------------------------------------
-        // Clear all
-        // -----------------------------------------------------
-
-        var clearAllButton =
-            new Button
-            {
-                Text =
-                    "Clear all overrides",
-
-                Left =
-                    20,
-
-                Top =
-                    365,
-
-                Width =
-                    160,
-
-                Height =
-                    32
-            };
-
-        clearAllButton.Click += (_, _) =>
-        {
-            var result =
-                MessageBox.Show(
-                    "Clear all game overrides?",
-                    "Discord Presence",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question
-                );
-
-            if (result !=
-                DialogResult.Yes)
-            {
+            if (MessageBox.Show(this, "Clear all game overrides?", "Discord Presence",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
-            }
-
-            _presenceController
-                .ClearGameOverrides();
-
-            RefreshLists(
-                force: true
-            );
+            _presenceController.ClearGameOverrides();
+            RefreshLists(force: true);
         };
-
-        // -----------------------------------------------------
-        // Close
-        // -----------------------------------------------------
-
-        var closeButton =
-            new Button
+        foreach (var button in new[] { _moveSelectedButton, _removeIncludedButton,
+            _removeExcludedButton, _clearAllButton, _closeButton })
+        {
+            Color original = button.ForeColor;
+            button.MouseEnter += (_, _) => { if (button.Enabled) button.ForeColor = Color.White; };
+            button.MouseLeave += (_, _) => button.ForeColor = original;
+            button.EnabledChanged += (_, _) => button.ForeColor = original;
+        }
+        foreach (var list in new[] { _includedList, _excludedList })
+        {
+            list.DrawMode = DrawMode.OwnerDrawFixed;
+            list.ItemHeight = Math.Max(28, list.Font.Height + 10);
+            list.DrawItem += (_, e) =>
             {
-                Text =
-                    "Close",
-
-                Left =
-                    450,
-
-                Top =
-                    365,
-
-                Width =
-                    110,
-
-                Height =
-                    32,
-
-                DialogResult =
-                    DialogResult.OK
+                if (e.Index < 0) return;
+                bool selected = (e.State & DrawItemState.Selected) != 0;
+                using (var brush = new SolidBrush(selected ? UiTheme.Accent : Color.White))
+                    e.Graphics.FillRectangle(brush, e.Bounds);
+                var bounds = e.Bounds;
+                int iconSize = Math.Max(16, (int)Math.Round(20.0 * DeviceDpi / 96.0));
+                var processIcon = AppCacheService.Shared.GetProcessIcon(
+                    list.Items[e.Index].ToString() ?? "", iconSize) ?? UiAssets.App(iconSize);
+                _paintedIcons[(list, e.Index)] = processIcon;
+                e.Graphics.DrawImage(processIcon, bounds.X + 7,
+                    bounds.Y + (bounds.Height - iconSize) / 2, iconSize, iconSize);
+                bounds.X += iconSize + 14;
+                bounds.Width -= iconSize + 20;
+                TextRenderer.DrawText(e.Graphics, list.Items[e.Index].ToString(), list.Font,
+                    bounds, selected ? Color.White : UiTheme.TextPrimary,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
+                    TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+                e.DrawFocusRectangle();
             };
-
-        AcceptButton =
-            closeButton;
-
-        // -----------------------------------------------------
-        // Controls
-        // -----------------------------------------------------
-
-        Controls.Add(
-            includedLabel
-        );
-
-        Controls.Add(
-            _includedList
-        );
-
-        Controls.Add(
-            _moveSelectedButton
-        );
-
-        Controls.Add(
-            excludedLabel
-        );
-
-        Controls.Add(
-            _excludedList
-        );
-
-        Controls.Add(
-            removeIncludedButton
-        );
-
-        Controls.Add(
-            removeExcludedButton
-        );
-
-        Controls.Add(
-            clearAllButton
-        );
-
-        Controls.Add(
-            closeButton
-        );
-
-        // -----------------------------------------------------
-        // Initial data
-        // -----------------------------------------------------
-
-        RefreshLists(
-            force: true
-        );
-
-        // -----------------------------------------------------
-        // Live refresh timer
-        // -----------------------------------------------------
-
-        _refreshTimer =
-            new System.Windows.Forms.Timer
-            {
-                Interval =
-                    500
-            };
-
+        }
+        RefreshLists(force: true);
+        _refreshTimer = new System.Windows.Forms.Timer(components) { Interval = 500 };
         _refreshTimer.Tick += (_, _) =>
         {
             RefreshLists();
+            RefreshChangedIcons(_includedList);
+            RefreshChangedIcons(_excludedList);
         };
-
         _refreshTimer.Start();
     }
 
-    // =========================================================
-    // Included selection
-    // =========================================================
+    private void RefreshChangedIcons(ListBox list)
+    {
+        int iconSize = Math.Max(16, (int)Math.Round(20.0 * DeviceDpi / 96.0));
+        for (int index = Math.Max(0, list.TopIndex); index < list.Items.Count; index++)
+        {
+            var bounds = list.GetItemRectangle(index);
+            if (bounds.Top >= list.ClientSize.Height) break;
+            var icon = AppCacheService.Shared.GetProcessIcon(
+                list.Items[index].ToString() ?? "", iconSize) ?? UiAssets.App(iconSize);
+            if (_paintedIcons.TryGetValue((list, index), out var painted) &&
+                ReferenceEquals(painted, icon)) continue;
+            _paintedIcons[(list, index)] = icon;
+            list.Invalidate(bounds);
+        }
+    }
+
+    private void UpdateActions()
+    {
+        _removeIncludedButton.Enabled = _includedList.SelectedItems.Count > 0;
+        _removeExcludedButton.Enabled = _excludedList.SelectedItems.Count > 0;
+        _clearAllButton.Enabled = _includedList.Items.Count + _excludedList.Items.Count > 0;
+    }
 
     private void HandleIncludedSelectionChanged()
     {
@@ -485,6 +186,7 @@ internal sealed class GameOverridesForm : Form
 
     private void UpdateMoveButton()
     {
+        UpdateActions();
         if (_includedList.SelectedItems.Count > 0)
         {
             /*
@@ -825,9 +527,9 @@ internal sealed class GameOverridesForm : Form
     protected override void OnFormClosed(
         FormClosedEventArgs e)
     {
-        _refreshTimer.Stop();
+        _refreshTimer?.Stop();
 
-        _refreshTimer.Dispose();
+        _refreshTimer?.Dispose();
 
         base.OnFormClosed(
             e

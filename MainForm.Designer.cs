@@ -153,13 +153,13 @@ partial class MainForm
             );
 
         _informationPanel.Location =
-            new System.Drawing.Point(11, 16);
+            new System.Drawing.Point(7, 9);
 
         _informationPanel.Name =
             "_informationPanel";
 
         _informationPanel.Size =
-            new System.Drawing.Size(427, 196);
+            new System.Drawing.Size(373, 185);
 
         _informationPanel.TabIndex =
             0;
@@ -172,7 +172,7 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _projectIcon.Location =
-            new System.Drawing.Point(3, 13);
+            new System.Drawing.Point(3, 3);
 
         _projectIcon.Name =
             "_projectIcon";
@@ -201,7 +201,7 @@ partial class MainForm
             );
 
         _projectTitleLabel.Location =
-            new System.Drawing.Point(72, 22);
+            new System.Drawing.Point(72, 12);
 
         _projectTitleLabel.Name =
             "_projectTitleLabel";
@@ -235,13 +235,13 @@ partial class MainForm
             );
 
         _detectedProjectLabel.Location =
-            new System.Drawing.Point(72, 43);
+            new System.Drawing.Point(72, 33);
 
         _detectedProjectLabel.Name =
             "_detectedProjectLabel";
 
         _detectedProjectLabel.Size =
-            new System.Drawing.Size(336, 22);
+            new System.Drawing.Size(298, 22);
 
         _detectedProjectLabel.TabIndex =
             2;
@@ -257,7 +257,7 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _applicationIcon.Location =
-            new System.Drawing.Point(3, 74);
+            new System.Drawing.Point(3, 64);
 
         _applicationIcon.Name =
             "_applicationIcon";
@@ -286,7 +286,7 @@ partial class MainForm
             );
 
         _applicationTitleLabel.Location =
-            new System.Drawing.Point(72, 82);
+            new System.Drawing.Point(72, 72);
 
         _applicationTitleLabel.Name =
             "_applicationTitleLabel";
@@ -320,13 +320,13 @@ partial class MainForm
             );
 
         _detectedAppLabel.Location =
-            new System.Drawing.Point(72, 103);
+            new System.Drawing.Point(72, 93);
 
         _detectedAppLabel.Name =
             "_detectedAppLabel";
 
         _detectedAppLabel.Size =
-            new System.Drawing.Size(336, 22);
+            new System.Drawing.Size(298, 22);
 
         _detectedAppLabel.TabIndex =
             5;
@@ -342,7 +342,7 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _windowIcon.Location =
-            new System.Drawing.Point(3, 133);
+            new System.Drawing.Point(3, 123);
 
         _windowIcon.Name =
             "_windowIcon";
@@ -371,7 +371,7 @@ partial class MainForm
             );
 
         _windowTitleTitleLabel.Location =
-            new System.Drawing.Point(72, 142);
+            new System.Drawing.Point(72, 132);
 
         _windowTitleTitleLabel.Name =
             "_windowTitleTitleLabel";
@@ -396,13 +396,13 @@ partial class MainForm
             );
 
         _windowTitleLabel.Location =
-            new System.Drawing.Point(72, 163);
+            new System.Drawing.Point(72, 153);
 
         _windowTitleLabel.Name =
             "_windowTitleLabel";
 
         _windowTitleLabel.Size =
-            new System.Drawing.Size(336, 30);
+            new System.Drawing.Size(298, 30);
 
         _windowTitleLabel.TabIndex =
             8;
@@ -465,16 +465,13 @@ partial class MainForm
             System.Windows.Forms.BorderStyle.FixedSingle;
 
         _suspectedGamePanel.Location =
-            new System.Drawing.Point(18, 226);
+            new System.Drawing.Point(9, 204);
 
         _suspectedGamePanel.Name =
             "_suspectedGamePanel";
 
         _suspectedGamePanel.Size =
-            new System.Drawing.Size(
-                420,
-                120
-            );
+            new System.Drawing.Size(373, 120);
 
         _suspectedGamePanel.TabIndex =
             1;
@@ -572,7 +569,7 @@ partial class MainForm
             "_suspectedGameNameLabel";
 
         _suspectedGameNameLabel.Size =
-            new System.Drawing.Size(326, 20);
+            new System.Drawing.Size(280, 20);
 
         _suspectedGameNameLabel.TabIndex =
             2;
@@ -601,7 +598,7 @@ partial class MainForm
             "_suspectedGameProcessLabel";
 
         _suspectedGameProcessLabel.Size =
-            new System.Drawing.Size(326, 20);
+            new System.Drawing.Size(280, 20);
 
         _suspectedGameProcessLabel.TabIndex =
             3;
@@ -779,7 +776,7 @@ partial class MainForm
             );
 
         _startMinimizedCheckBox.Location =
-            new System.Drawing.Point(20, 377);
+            new System.Drawing.Point(43, 348);
 
         _startMinimizedCheckBox.Name =
             "_startMinimizedCheckBox";
@@ -814,7 +811,7 @@ partial class MainForm
             );
 
         _startWithWindowsCheckBox.Location =
-            new System.Drawing.Point(200, 377);
+            new System.Drawing.Point(196, 348);
 
         _startWithWindowsCheckBox.Name =
             "_startWithWindowsCheckBox";
@@ -852,22 +849,28 @@ partial class MainForm
             );
 
         _manageGameOverridesButton.Location =
-            new System.Drawing.Point(20, 396);
+            new System.Drawing.Point(28, 367);
 
         _manageGameOverridesButton.Name =
             "_manageGameOverridesButton";
 
         _manageGameOverridesButton.Size =
-            new System.Drawing.Size(
-                180,
-                31
-            );
+            new System.Drawing.Size(334, 34);
 
         _manageGameOverridesButton.TabIndex =
             4;
 
         _manageGameOverridesButton.Text =
             "Manage game";
+
+        _manageGameOverridesButton.ImageAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
+        _manageGameOverridesButton.TextAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
+        _manageGameOverridesButton.Padding =
+            System.Windows.Forms.Padding.Empty;
 
         _manageGameOverridesButton.TextImageRelation =
             System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -897,22 +900,28 @@ partial class MainForm
             );
 
         _refreshButton.Location =
-            new System.Drawing.Point(20, 436);
+            new System.Drawing.Point(28, 407);
 
         _refreshButton.Name =
             "_refreshButton";
 
         _refreshButton.Size =
-            new System.Drawing.Size(
-                150,
-                33
-            );
+            new System.Drawing.Size(191, 34);
 
         _refreshButton.TabIndex =
             5;
 
         _refreshButton.Text =
             "Refresh Presence";
+
+        _refreshButton.ImageAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
+        _refreshButton.TextAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
+        _refreshButton.Padding =
+            System.Windows.Forms.Padding.Empty;
 
         _refreshButton.TextImageRelation =
             System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -942,22 +951,28 @@ partial class MainForm
             );
 
         _clearButton.Location =
-            new System.Drawing.Point(180, 436);
+            new System.Drawing.Point(229, 407);
 
         _clearButton.Name =
             "_clearButton";
 
         _clearButton.Size =
-            new System.Drawing.Size(
-                105,
-                33
-            );
+            new System.Drawing.Size(133, 34);
 
         _clearButton.TabIndex =
             6;
 
         _clearButton.Text =
             "Clear";
+
+        _clearButton.ImageAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
+        _clearButton.TextAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
+        _clearButton.Padding =
+            System.Windows.Forms.Padding.Empty;
 
         _clearButton.TextImageRelation =
             System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -973,7 +988,7 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _statusIcon.Location =
-            new System.Drawing.Point(20, 480);
+            new System.Drawing.Point(59, 444);
 
         _statusIcon.Name =
             "_statusIcon";
@@ -1008,16 +1023,13 @@ partial class MainForm
             );
 
         _statusLabel.Location =
-            new System.Drawing.Point(48, 478);
+            new System.Drawing.Point(82, 444);
 
         _statusLabel.Name =
             "_statusLabel";
 
         _statusLabel.Size =
-            new System.Drawing.Size(
-                390,
-                22
-            );
+            new System.Drawing.Size(242, 22);
 
         _statusLabel.TabIndex =
             8;
@@ -1046,7 +1058,7 @@ partial class MainForm
             );
 
         ClientSize =
-            new System.Drawing.Size(454, 507);
+            new System.Drawing.Size(392, 463);
 
         Controls.Add(
             _informationPanel

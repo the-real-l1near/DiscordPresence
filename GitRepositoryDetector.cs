@@ -5,13 +5,6 @@ namespace DiscordPresence;
 
 public static class GitRepositoryDetector
 {
-    private static readonly object CacheLock =
-        new();
-
-    private static readonly Dictionary<string, string?>
-        RepoNameCache =
-            new(StringComparer.OrdinalIgnoreCase);
-
     private static readonly string[]
         SearchRoots =
         [
@@ -39,15 +32,8 @@ public static class GitRepositoryDetector
             return null;
         }
 
-        lock (CacheLock)
-        {
-            if (RepoNameCache.TryGetValue(
-                projectName,
-                out var cached))
-            {
-                return cached;
-            }
-        }
+        if (AppCacheService.Shared.TryGetRepository(projectName, out var cached))
+            return cached;
 
         var repoPath =
             FindRepository(
@@ -335,10 +321,6 @@ public static class GitRepositoryDetector
         string projectName,
         string? repoName)
     {
-        lock (CacheLock)
-        {
-            RepoNameCache[projectName] =
-                repoName;
-        }
+        AppCacheService.Shared.StoreRepository(projectName, repoName);
     }
 }

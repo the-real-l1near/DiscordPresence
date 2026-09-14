@@ -22,9 +22,9 @@ internal sealed class DiscordDetectableAppService
     // Cache
     // =========================================================
 
-    private readonly string _cacheDirectory;
 
-    private readonly string _cacheFilePath;
+
+    private const string CacheFileName = "discord-detectable-apps.json";
 
     // =========================================================
     // Lookup
@@ -49,23 +49,7 @@ internal sealed class DiscordDetectableAppService
 
     public DiscordDetectableAppService()
     {
-        _cacheDirectory =
-            Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.LocalApplicationData
-                ),
-                "DiscordPresence",
-                "Cache"
-            );
-
-        _cacheFilePath =
-            Path.Combine(
-                _cacheDirectory,
-                "discord-detectable-apps.json"
-            );
-
         LoadCache();
-
         StartBackgroundRefresh();
     }
 
@@ -197,43 +181,11 @@ internal sealed class DiscordDetectableAppService
 
     private void LoadCache()
     {
-        if (!File.Exists(
-            _cacheFilePath
-        ))
-        {
-            return;
-        }
-
-        try
-        {
-            var json =
-                File.ReadAllText(
-                    _cacheFilePath
-                );
-
-            var lookup =
-                ParseLookup(
-                    json
-                );
-
-            if (lookup.Count == 0)
-            {
-                return;
-            }
-
-            lock (_sync)
-            {
-                _windowsExecutables =
-                    lookup;
-            }
-        }
-        catch
-        {
-            /*
-             * Corrupt cache:
-             * ignore và refresh lại từ Discord.
-             */
-        }
+        var json = AppCacheService.Shared.ReadText(CacheFileName);
+        if (json is null) return;
+        var lookup = ParseLookup(json);
+        if (lookup.Count == 0) return;
+        lock (_sync) _windowsExecutables = lookup;
     }
 
     // =========================================================
@@ -243,36 +195,7 @@ internal sealed class DiscordDetectableAppService
     private void SaveCache(
         string json)
     {
-        try
-        {
-            Directory.CreateDirectory(
-                _cacheDirectory
-            );
-
-            var temporaryPath =
-                _cacheFilePath +
-                ".tmp";
-
-            File.WriteAllText(
-                temporaryPath,
-                json
-            );
-
-            File.Move(
-                temporaryPath,
-                _cacheFilePath,
-                overwrite: true
-            );
-        }
-        catch
-        {
-            /*
-             * Không ghi được cache cũng không phải
-             * fatal error.
-             *
-             * Lookup vừa tải vẫn dùng được trong RAM.
-             */
-        }
+        AppCacheService.Shared.WriteText(CacheFileName, json);
     }
 
     // =========================================================
@@ -281,29 +204,9 @@ internal sealed class DiscordDetectableAppService
 
     private bool ShouldRefreshCache()
     {
-        if (!File.Exists(
-            _cacheFilePath
-        ))
-        {
-            return true;
-        }
-
-        try
-        {
-            var lastWriteTime =
-                File.GetLastWriteTimeUtc(
-                    _cacheFilePath
-                );
-
-            return
-                DateTime.UtcNow -
-                lastWriteTime >=
-                CacheLifetime;
-        }
-        catch
-        {
-            return true;
-        }
+        lock (_sync)
+            if (_windowsExecutables.Count == 0) return true;
+        return !AppCacheService.Shared.IsFresh(CacheFileName, CacheLifetime);
     }
 
     // =========================================================

@@ -153,6 +153,8 @@ internal sealed class GameDetector
             var processName =
                 process.ProcessName;
 
+            AppCacheService.Shared.ObserveProcess((int)processId, processName);
+
             var windowTitle =
                 GetWindowTitle(
                     window

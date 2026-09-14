@@ -1,36 +1,23 @@
-DiscordPresence Installer Kit
+MASTER CACHE UPDATE
 
-Put these files into the root of your DiscordPresence repo:
+Copy all 6 .cs files in this folder into the DiscordPresence project:
+- Add AppCacheService.cs.
+- Replace UiAssets.cs, DiscordDetectableAppService.cs, GitRepositoryDetector.cs,
+  GameDetector.cs and GameOverridesForm.cs.
+- Keep the current GameOverridesForm.Designer.cs and MainForm files.
 
-DiscordPresence\
-├── build-installer.ps1
-├── installer\
-│   └── DiscordPresence.iss
-├── DiscordPresence.csproj
-├── icon.ico
-└── ...
+Cache folder: %LocalAppData%\DiscordPresence\Cache
+- Existing discord-detectable-apps.json is reused (24-hour freshness).
+- processes.json stores observed process names and executable paths.
+- process-*.png stores executable icons; SVG images stay in memory.
+- Repository lookup results share the service's memory cache.
 
-Then run:
+Game overrides and settings are NOT migrated or removed.
+Foreground processes are observed in the background, at most once per minute
+per process ID/name. Restricted or exited processes are skipped and retried later.
+Manage game shows a default icon until the process has been observed successfully.
+Cached icons remain available after the target app exits.
 
-    .\build-installer.ps1
-
-If PowerShell blocks local scripts for this session:
-
-    Set-ExecutionPolicy -Scope Process Bypass
-
-Then run the build script again.
-
-The script:
-1. Publishes the self-contained win-x64 build.
-2. Finds Inno Setup 7 or 6.
-3. Builds dist\DiscordPresence-Setup-1.0.0.exe
-
-The installer:
-- Installs per-user to %LOCALAPPDATA%\Programs\DiscordPresence
-- Does not require admin rights
-- Includes the complete self-contained publish folder
-- Creates a Start Menu shortcut
-- Offers an optional desktop shortcut
-- Adds an uninstaller
-- Removes the app's HKCU startup entry during uninstall
-- Leaves user settings in %LOCALAPPDATA%\DiscordPresence intact
+Validation: cache tests passed; integrated C# compilation passed against the
+project's current sources and installed dependency assemblies. The full app
+has not been launched for an end-to-end UI test.

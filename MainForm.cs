@@ -63,10 +63,12 @@ public sealed partial class MainForm : Form
 
     public MainForm()
     {
-        /*
-         * UI/layout do Designer quản lý.
-         */
         InitializeComponent();
+
+        // Keep standard buttons in the Designer; use centered painting at runtime.
+        _manageGameOverridesButton = ReplaceActionButton(_manageGameOverridesButton);
+        _refreshButton = ReplaceActionButton(_refreshButton);
+        _clearButton = ReplaceActionButton(_clearButton);
 
         // -----------------------------------------------------
         // Settings
@@ -306,6 +308,57 @@ public sealed partial class MainForm : Form
     // Runtime assets
     // =========================================================
 
+    private static Button ReplaceActionButton(Button original)
+    {
+        var parent = original.Parent;
+        if (parent is null)
+            throw new InvalidOperationException("Action button has no parent.");
+
+        int index = parent.Controls.GetChildIndex(original);
+        var replacement = new CenteredContentButton
+        {
+            Name = original.Name,
+            Bounds = original.Bounds,
+            Text = original.Text,
+            Font = original.Font,
+            BackColor = original.BackColor,
+            ForeColor = original.ForeColor,
+            FlatStyle = original.FlatStyle,
+            UseVisualStyleBackColor = original.UseVisualStyleBackColor,
+            TabIndex = original.TabIndex,
+            TabStop = original.TabStop,
+            Anchor = original.Anchor,
+            Dock = original.Dock,
+            Margin = original.Margin,
+            Padding = original.Padding,
+            ImageAlign = original.ImageAlign,
+            TextAlign = original.TextAlign,
+            TextImageRelation = original.TextImageRelation,
+            Enabled = original.Enabled,
+            UseMnemonic = original.UseMnemonic,
+            AccessibleName = original.AccessibleName,
+            AccessibleDescription = original.AccessibleDescription
+        };
+        replacement.FlatAppearance.BorderColor = original.FlatAppearance.BorderColor;
+        replacement.FlatAppearance.BorderSize = original.FlatAppearance.BorderSize;
+        replacement.FlatAppearance.MouseOverBackColor = original.FlatAppearance.MouseOverBackColor;
+        replacement.FlatAppearance.MouseDownBackColor = original.FlatAppearance.MouseDownBackColor;
+
+        parent.SuspendLayout();
+        try
+        {
+            parent.Controls.Remove(original);
+            parent.Controls.Add(replacement);
+            parent.Controls.SetChildIndex(replacement, index);
+        }
+        finally
+        {
+            parent.ResumeLayout(false);
+        }
+        original.Dispose();
+        return replacement;
+    }
+
     private void ApplyRuntimeAssets()
     {
         _projectIcon.Image =
@@ -341,13 +394,19 @@ public sealed partial class MainForm : Form
             );
 
         _manageGameOverridesButton.Image =
-            UiAssets.Settings(18);
+            UiAssets.Settings(24);
 
         _refreshButton.Image =
-            UiAssets.Refresh(18);
+            UiAssets.Refresh(20);
 
         _clearButton.Image =
-            UiAssets.Trash(18);
+            UiAssets.Trash(20);
+
+        ((CenteredContentButton)_refreshButton).HoverImage =
+            UiAssets.RefreshHover(20);
+
+        ((CenteredContentButton)_clearButton).HoverImage =
+            UiAssets.TrashHover(20);
 
         _statusIcon.Image =
             UiAssets.Info(
@@ -364,6 +423,12 @@ public sealed partial class MainForm : Form
 
     private void WireEvents()
     {
+        Resize += (_, _) =>
+        {
+            if (WindowState == FormWindowState.Normal)
+                UpdateSuspectedGameUi();
+        };
+
         _suspectedGameYesButton.Click += (_, _) =>
         {
             ResolveSuspectedGameYes();
@@ -386,7 +451,9 @@ public sealed partial class MainForm : Form
                     _presenceController
                 );
 
-            dialog.ShowDialog(this);
+            dialog.ShowDialog(
+                this
+            );
 
             UpdatePresenceUi();
         };
@@ -489,8 +556,10 @@ public sealed partial class MainForm : Form
             return;
         }
 
-        if (_lastNotifiedSuspectId ==
-            suspect.Id)
+        if (
+            _lastNotifiedSuspectId ==
+            suspect.Id
+        )
         {
             return;
         }
@@ -585,6 +654,12 @@ public sealed partial class MainForm : Form
             _presenceController
                 .StatusText;
 
+        var statusSize =
+            Math.Min(
+                _statusIcon.Width,
+                _statusIcon.Height
+            );
+
         if (
             status.Contains(
                 "failed",
@@ -600,7 +675,9 @@ public sealed partial class MainForm : Form
                 UiTheme.Danger;
 
             _statusIcon.Image =
-                UiAssets.Warning(20);
+                UiAssets.Warning(
+                    statusSize
+                );
 
             return;
         }
@@ -616,7 +693,9 @@ public sealed partial class MainForm : Form
                 UiTheme.Accent;
 
             _statusIcon.Image =
-                UiAssets.Warning(20);
+                UiAssets.Warning(
+                    statusSize
+                );
 
             return;
         }
@@ -644,7 +723,9 @@ public sealed partial class MainForm : Form
                 );
 
             _statusIcon.Image =
-                UiAssets.Check(20);
+                UiAssets.Check(
+                    statusSize
+                );
 
             return;
         }
@@ -653,7 +734,9 @@ public sealed partial class MainForm : Form
             UiTheme.TextSecondary;
 
         _statusIcon.Image =
-            UiAssets.Info(20);
+            UiAssets.Info(
+                statusSize
+            );
     }
 
     // =========================================================
@@ -688,6 +771,10 @@ public sealed partial class MainForm : Form
                 $"Is \"{suspect.ProcessName}.exe\" a game?";
         }
 
+        // -----------------------------------------------------
+        // Tray
+        // -----------------------------------------------------
+
         _traySuspectQuestionItem.Visible =
             hasSuspect;
 
@@ -703,58 +790,82 @@ public sealed partial class MainForm : Form
         _traySuspectSeparator.Visible =
             hasSuspect;
 
-        if (hasSuspect)
-        {
-            _startMinimizedCheckBox.Top =
-                338;
+        // -----------------------------------------------------
+        // Automatic vertical layout
+        // -----------------------------------------------------
 
-            _startWithWindowsCheckBox.Top =
-                338;
+        // A minimized window has a different client area. Do not use it to
+        // overwrite the restored window size while the detection timer runs.
+        if (WindowState != FormWindowState.Normal)
+            return;
 
-            _manageGameOverridesButton.Top =
-                368;
+        var settingsTop =
+            hasSuspect
+                ? _suspectedGamePanel.Bottom + 12
+                : _informationPanel.Bottom + 16;
 
-            _refreshButton.Top =
-                408;
+        // -----------------------------------------------------
+        // Checkboxes
+        // -----------------------------------------------------
 
-            _clearButton.Top =
-                408;
+        _startMinimizedCheckBox.Top =
+            settingsTop;
 
-            _statusIcon.Top =
-                452;
+        _startWithWindowsCheckBox.Top =
+            settingsTop;
 
-            _statusLabel.Top =
-                450;
+        // -----------------------------------------------------
+        // Manage game
+        // -----------------------------------------------------
 
-            Height =
-                535;
-        }
-        else
-        {
-            _startMinimizedCheckBox.Top =
-                210;
+        var checkboxBottom =
+            Math.Max(
+                _startMinimizedCheckBox.Bottom,
+                _startWithWindowsCheckBox.Bottom
+            );
 
-            _startWithWindowsCheckBox.Top =
-                210;
+        _manageGameOverridesButton.Top =
+            checkboxBottom + 10;
 
-            _manageGameOverridesButton.Top =
-                240;
+        // -----------------------------------------------------
+        // Actions
+        // -----------------------------------------------------
 
-            _refreshButton.Top =
-                280;
+        _refreshButton.Top =
+            _manageGameOverridesButton.Bottom + 10;
 
-            _clearButton.Top =
-                280;
+        _clearButton.Top =
+            _refreshButton.Top;
 
-            _statusIcon.Top =
-                324;
+        // -----------------------------------------------------
+        // Status
+        // -----------------------------------------------------
 
-            _statusLabel.Top =
-                322;
+        var actionBottom =
+            Math.Max(
+                _refreshButton.Bottom,
+                _clearButton.Bottom
+            );
 
-            Height =
-                405;
-        }
+        _statusIcon.Top =
+            actionBottom + 12;
+
+        _statusLabel.Top =
+            _statusIcon.Top - 1;
+
+        // -----------------------------------------------------
+        // Automatic form height
+        // -----------------------------------------------------
+
+        var contentBottom =
+            Math.Max(
+                _statusIcon.Bottom,
+                _statusLabel.Bottom
+            );
+
+        int desiredHeight = contentBottom + 18;
+        if (ClientSize.Height != desiredHeight)
+            ClientSize = new Size(ClientSize.Width, desiredHeight);
     }
 
     // =========================================================
@@ -809,8 +920,10 @@ public sealed partial class MainForm : Form
             return;
         }
 
-        if (e.CloseReason !=
-            CloseReason.UserClosing)
+        if (
+            e.CloseReason !=
+            CloseReason.UserClosing
+        )
         {
             return;
         }
@@ -822,7 +935,9 @@ public sealed partial class MainForm : Form
             new CloseActionDialog();
 
         var result =
-            dialog.ShowDialog(this);
+            dialog.ShowDialog(
+                this
+            );
 
         switch (result)
         {
@@ -867,6 +982,149 @@ public sealed partial class MainForm : Form
 
         UiAssets.Dispose();
 
-        base.OnFormClosed(e);
+        base.OnFormClosed(
+            e
+        );
+    }
+}
+
+// Used only by the three main action buttons.
+public sealed class CenteredContentButton : System.Windows.Forms.Button
+{
+    // Images are owned and disposed by UiAssets.
+    [System.ComponentModel.Browsable(false)]
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public Image? HoverImage { get; set; }
+
+    private bool _hovered;
+    private bool _mousePressed;
+    private bool _spacePressed;
+
+    public CenteredContentButton()
+    {
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        _hovered = true;
+        base.OnMouseEnter(e);
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        _hovered = false;
+        base.OnMouseLeave(e);
+        Invalidate();
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left) _mousePressed = true;
+        base.OnMouseDown(e);
+        Invalidate();
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left) _mousePressed = false;
+        base.OnMouseUp(e);
+        Invalidate();
+    }
+
+    protected override void OnMouseCaptureChanged(EventArgs e)
+    {
+        if (!Capture) _mousePressed = false;
+        base.OnMouseCaptureChanged(e);
+        Invalidate();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Space) _spacePressed = true;
+        base.OnKeyDown(e);
+        Invalidate();
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Space) _spacePressed = false;
+        base.OnKeyUp(e);
+        Invalidate();
+    }
+
+    protected override void OnLostFocus(EventArgs e)
+    {
+        _spacePressed = false;
+        _mousePressed = false;
+        base.OnLostFocus(e);
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        // Paint the content once, without the standard image/text layout.
+        bool pressed = Enabled && (_spacePressed || (_mousePressed && _hovered));
+        Color background = BackColor;
+        if (Enabled && (pressed || _hovered))
+        {
+            Color configured = pressed
+                ? FlatAppearance.MouseDownBackColor
+                : FlatAppearance.MouseOverBackColor;
+            background = configured.IsEmpty
+                ? ControlPaint.Dark(BackColor, pressed ? 0.12f : 0.05f)
+                : configured;
+        }
+
+        using (var brush = new SolidBrush(background))
+            e.Graphics.FillRectangle(brush, ClientRectangle);
+
+        bool hovering = Enabled && _hovered;
+        Color foreground = Enabled
+            ? (hovering ? Color.White : ForeColor)
+            : SystemColors.GrayText;
+        Image? displayedImage = hovering ? (HoverImage ?? Image) : Image;
+        Color border = FlatAppearance.BorderColor.IsEmpty
+            ? (Enabled ? ForeColor : SystemColors.GrayText) : FlatAppearance.BorderColor;
+        int borderWidth = FlatAppearance.BorderSize;
+        using (var pen = new Pen(border))
+        {
+            for (int i = 0; i < borderWidth; i++)
+                e.Graphics.DrawRectangle(pen, i, i, Width - 1 - 2 * i, Height - 1 - 2 * i);
+        }
+
+        var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPadding |
+            TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
+        if (!UseMnemonic) flags |= TextFormatFlags.NoPrefix;
+        else if (!ShowKeyboardCues) flags |= TextFormatFlags.HidePrefix;
+
+        int imageWidth = displayedImage == null ? 0 : displayedImage.Width;
+        int gap = displayedImage != null && Text.Length > 0
+            ? Math.Max(1, (int)Math.Round(4.0 * DeviceDpi / 96.0)) : 0;
+        int inset = Math.Max(borderWidth + 2, 3);
+        int available = Math.Max(0, ClientSize.Width - 2 * inset - imageWidth - gap);
+        int textWidth = Text.Length == 0 ? 0 : Math.Min(available,
+            TextRenderer.MeasureText(e.Graphics, Text, Font,
+                new Size(int.MaxValue, int.MaxValue), flags).Width);
+        int totalWidth = imageWidth + gap + textWidth;
+        int x = (ClientSize.Width - totalWidth) / 2;
+
+        if (displayedImage != null)
+        {
+            int y = (ClientSize.Height - displayedImage.Height) / 2;
+            if (Enabled) e.Graphics.DrawImageUnscaled(displayedImage, x, y);
+            else ControlPaint.DrawImageDisabled(e.Graphics, displayedImage, x, y, background);
+            x += imageWidth + gap;
+        }
+
+        if (textWidth > 0)
+            TextRenderer.DrawText(e.Graphics, Text, Font,
+                new Rectangle(x, 0, textWidth, ClientSize.Height), foreground, flags);
+
+        if (Focused && ShowFocusCues)
+            ControlPaint.DrawFocusRectangle(e.Graphics,
+                Rectangle.Inflate(ClientRectangle, -inset, -inset), foreground, background);
     }
 }
