@@ -49,17 +49,21 @@ internal sealed class PresenceController : IDisposable
     // Current presence
     // =========================================================
 
-    private AppPresenceProfile? _currentProfile;
+    private AppPresenceProfile?
+        _currentProfile;
 
-    private string? _currentProjectName;
+    private string?
+        _currentProjectName;
 
-    private string? _currentRepositoryName;
+    private string?
+        _currentRepositoryName;
 
     // =========================================================
     // Game override
     // =========================================================
 
-    private bool _isGameOverrideActive;
+    private bool
+        _isGameOverrideActive;
 
     // =========================================================
     // Suspected games
@@ -201,7 +205,7 @@ internal sealed class PresenceController : IDisposable
             null;
 
         SetStatus(
-            $"Game confirmed: {suspect.DisplayName}"
+            $"Game confirmed: {suspect.ProcessName}.exe"
         );
     }
 
@@ -227,7 +231,7 @@ internal sealed class PresenceController : IDisposable
             null;
 
         SetStatus(
-            $"Ignored as game: {suspect.DisplayName}"
+            $"Ignored as game: {suspect.ProcessName}.exe"
         );
     }
 
@@ -251,8 +255,61 @@ internal sealed class PresenceController : IDisposable
             null;
 
         SetStatus(
-            $"Game confirmation deferred: {suspect.DisplayName}"
+            $"Game confirmation deferred: {suspect.ProcessName}.exe"
         );
+    }
+
+    // =========================================================
+    // Game override management
+    // =========================================================
+
+    public IReadOnlyList<string> GetIncludedGameOverrides()
+    {
+        return _gameOverrides
+            .GetIncludedProcesses();
+    }
+
+    public IReadOnlyList<string> GetExcludedGameOverrides()
+    {
+        return _gameOverrides
+            .GetExcludedProcesses();
+    }
+
+    public void ConfirmGameOverride(
+        string processName)
+    {
+        _gameOverrides.Include(
+            processName
+        );
+    }
+
+    public void RejectGameOverride(
+        string processName)
+    {
+        _gameOverrides.Exclude(
+            processName
+        );
+    }
+
+    public void RemoveIncludedGameOverride(
+        string processName)
+    {
+        _gameOverrides.RemoveInclude(
+            processName
+        );
+    }
+
+    public void RemoveExcludedGameOverride(
+        string processName)
+    {
+        _gameOverrides.RemoveExclude(
+            processName
+        );
+    }
+
+    public void ClearGameOverrides()
+    {
+        _gameOverrides.ClearAll();
     }
 
     // =========================================================
@@ -346,10 +403,6 @@ internal sealed class PresenceController : IDisposable
     private void HandleConfirmedGame(
         GameDetectionResult result)
     {
-        /*
-         * Nếu user vừa confirm một pending suspect,
-         * nó không còn cần xuất hiện trong UI.
-         */
         if (
             PendingSuspectedGame is not null &&
             string.Equals(
@@ -402,7 +455,7 @@ internal sealed class PresenceController : IDisposable
         }
 
         // -----------------------------------------------------
-        // Deferred?
+        // Deferred
         // -----------------------------------------------------
 
         if (_deferredSuspects.TryGetValue(
@@ -450,7 +503,7 @@ internal sealed class PresenceController : IDisposable
             );
 
         SetStatus(
-            $"Suspected game: {result.DisplayName}"
+            $"Suspected game: {processName}.exe"
         );
     }
 

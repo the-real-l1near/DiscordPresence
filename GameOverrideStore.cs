@@ -87,6 +87,36 @@ internal sealed class GameOverrideStore
     }
 
     // =========================================================
+    // Get overrides
+    // =========================================================
+
+    public IReadOnlyList<string> GetIncludedProcesses()
+    {
+        lock (_sync)
+        {
+            return _includedProcesses
+                .OrderBy(
+                    value => value,
+                    StringComparer.OrdinalIgnoreCase
+                )
+                .ToArray();
+        }
+    }
+
+    public IReadOnlyList<string> GetExcludedProcesses()
+    {
+        lock (_sync)
+        {
+            return _excludedProcesses
+                .OrderBy(
+                    value => value,
+                    StringComparer.OrdinalIgnoreCase
+                )
+                .ToArray();
+        }
+    }
+
+    // =========================================================
     // Include
     // =========================================================
 
@@ -147,6 +177,86 @@ internal sealed class GameOverrideStore
             _excludedProcesses.Add(
                 normalized
             );
+
+            SaveLocked();
+        }
+    }
+
+    // =========================================================
+    // Remove include
+    // =========================================================
+
+    public void RemoveInclude(
+        string processName)
+    {
+        var normalized =
+            NormalizeProcessName(
+                processName
+            );
+
+        if (string.IsNullOrWhiteSpace(
+            normalized
+        ))
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (!_includedProcesses.Remove(
+                normalized
+            ))
+            {
+                return;
+            }
+
+            SaveLocked();
+        }
+    }
+
+    // =========================================================
+    // Remove exclude
+    // =========================================================
+
+    public void RemoveExclude(
+        string processName)
+    {
+        var normalized =
+            NormalizeProcessName(
+                processName
+            );
+
+        if (string.IsNullOrWhiteSpace(
+            normalized
+        ))
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (!_excludedProcesses.Remove(
+                normalized
+            ))
+            {
+                return;
+            }
+
+            SaveLocked();
+        }
+    }
+
+    // =========================================================
+    // Clear all
+    // =========================================================
+
+    public void ClearAll()
+    {
+        lock (_sync)
+        {
+            _includedProcesses.Clear();
+
+            _excludedProcesses.Clear();
 
             SaveLocked();
         }
@@ -293,8 +403,8 @@ internal sealed class GameOverrideStore
         catch
         {
             /*
-             * Override vẫn tồn tại trong RAM nếu
-             * persistent storage fail.
+             * Override vẫn còn hiệu lực trong RAM
+             * nếu save xuống disk thất bại.
              */
         }
     }
