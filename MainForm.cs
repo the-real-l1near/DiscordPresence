@@ -1,6 +1,6 @@
 namespace DiscordPresence;
 
-public sealed class MainForm : Form
+public sealed partial class MainForm : Form
 {
     // =========================================================
     // Controller
@@ -48,68 +48,14 @@ public sealed class MainForm : Form
     private readonly ToolStripSeparator
         _traySuspectSeparator;
 
-    private Guid? _lastNotifiedSuspectId;
-
-    private bool _isExiting;
-
-    // =========================================================
-    // UI
-    // =========================================================
-
-    private readonly Label
-        _detectedProjectLabel;
-
-    private readonly Label
-        _detectedAppLabel;
-
-    private readonly Label
-        _windowTitleLabel;
-
-    // Suspected game
-
-    private readonly Panel
-        _suspectedGamePanel;
-
-    private readonly Label
-        _suspectedGameNameLabel;
-
-    private readonly Label
-        _suspectedGameProcessLabel;
-
-    private readonly Button
-        _suspectedGameYesButton;
-
-    private readonly Button
-        _suspectedGameNoButton;
-
-    private readonly Button
-        _suspectedGameLaterButton;
-
-    // Settings
-
-    private readonly CheckBox
-        _startMinimizedCheckBox;
-
-    private readonly CheckBox
-        _startWithWindowsCheckBox;
-
-    // Actions / status
-
-    private readonly Button
-        _refreshButton;
-
-    private readonly Button
-        _clearButton;
-
-    private readonly Label
-        _statusLabel;
-
-    // =========================================================
-    // Notification
-    // =========================================================
+    private Guid?
+        _lastNotifiedSuspectId;
 
     private SuspectedGameToastForm?
         _suspectedGameToast;
+
+    private bool
+        _isExiting;
 
     // =========================================================
     // Constructor
@@ -117,12 +63,23 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
+        /*
+         * UI/layout do Designer quản lý.
+         */
+        InitializeComponent();
+
         // -----------------------------------------------------
         // Settings
         // -----------------------------------------------------
 
         _settings =
             SettingsService.Load();
+
+        _startMinimizedCheckBox.Checked =
+            _settings.StartMinimized;
+
+        _startWithWindowsCheckBox.Checked =
+            StartupService.IsEnabled();
 
         // -----------------------------------------------------
         // Controller
@@ -132,11 +89,14 @@ public sealed class MainForm : Form
             new PresenceController();
 
         // -----------------------------------------------------
-        // Window
+        // Runtime assets
         // -----------------------------------------------------
 
-        Text =
-            "Custom Discord Presence";
+        ApplyRuntimeAssets();
+
+        // -----------------------------------------------------
+        // Application icon
+        // -----------------------------------------------------
 
         var appIcon =
             System.Drawing.Icon.ExtractAssociatedIcon(
@@ -149,529 +109,15 @@ public sealed class MainForm : Form
                 appIcon;
         }
 
-        Width =
-            540;
-
-        Height =
-            430;
-
-        StartPosition =
-            FormStartPosition.CenterScreen;
-
-        FormBorderStyle =
-            FormBorderStyle.FixedSingle;
-
-        MaximizeBox =
-            false;
-
-        // =====================================================
-        // Project
-        // =====================================================
-
-        var projectTitleLabel =
-            new Label
-            {
-                Text =
-                    "Detected project",
-
-                Left =
-                    20,
-
-                Top =
-                    20,
-
-                Width =
-                    180
-            };
-
-        _detectedProjectLabel =
-            new Label
-            {
-                Text =
-                    "None",
-
-                Left =
-                    20,
-
-                Top =
-                    45,
-
-                Width =
-                    480,
-
-                Font =
-                    new Font(
-                        Font,
-                        FontStyle.Bold
-                    )
-            };
-
-        // =====================================================
-        // Application
-        // =====================================================
-
-        var appTitleLabel =
-            new Label
-            {
-                Text =
-                    "Detected application",
-
-                Left =
-                    20,
-
-                Top =
-                    85,
-
-                Width =
-                    180
-            };
-
-        _detectedAppLabel =
-            new Label
-            {
-                Text =
-                    "Idle",
-
-                Left =
-                    20,
-
-                Top =
-                    110,
-
-                Width =
-                    480,
-
-                Font =
-                    new Font(
-                        Font,
-                        FontStyle.Bold
-                    )
-            };
-
-        // =====================================================
-        // Window title
-        // =====================================================
-
-        var windowTitleTitleLabel =
-            new Label
-            {
-                Text =
-                    "Window title",
-
-                Left =
-                    20,
-
-                Top =
-                    150,
-
-                Width =
-                    180
-            };
-
-        _windowTitleLabel =
-            new Label
-            {
-                Text =
-                    "-",
-
-                Left =
-                    20,
-
-                Top =
-                    175,
-
-                Width =
-                    480,
-
-                Height =
-                    40,
-
-                AutoEllipsis =
-                    true
-            };
-
-        // =====================================================
-        // Suspected game panel
-        // =====================================================
-
-        _suspectedGamePanel =
-            new Panel
-            {
-                Left =
-                    20,
-
-                Top =
-                    220,
-
-                Width =
-                    485,
-
-                Height =
-                    115,
-
-                BorderStyle =
-                    BorderStyle.FixedSingle,
-
-                Visible =
-                    false
-            };
-
-        var suspectedGameTitleLabel =
-            new Label
-            {
-                Text =
-                    "Suspected game",
-
-                Left =
-                    10,
-
-                Top =
-                    8,
-
-                Width =
-                    150,
-
-                Font =
-                    new Font(
-                        Font,
-                        FontStyle.Bold
-                    )
-            };
-
-        _suspectedGameNameLabel =
-            new Label
-            {
-                Text =
-                    "-",
-
-                Left =
-                    10,
-
-                Top =
-                    30,
-
-                Width =
-                    460,
-
-                AutoEllipsis =
-                    true
-            };
-
-        _suspectedGameProcessLabel =
-            new Label
-            {
-                Text =
-                    string.Empty,
-
-                Left =
-                    10,
-
-                Top =
-                    50,
-
-                Width =
-                    460,
-
-                ForeColor =
-                    SystemColors.GrayText,
-                
-                AutoEllipsis =
-                    true
-            };
-
-        _suspectedGameYesButton =
-            new Button
-            {
-                Text =
-                    "Yes",
-
-                Left =
-                    10,
-
-                Top =
-                    75,
-
-                Width =
-                    90,
-
-                Height =
-                    28
-            };
-
-        _suspectedGameNoButton =
-            new Button
-            {
-                Text =
-                    "No",
-
-                Left =
-                    110,
-
-                Top =
-                    75,
-
-                Width =
-                    90,
-
-                Height =
-                    28
-            };
-
-        _suspectedGameLaterButton =
-            new Button
-            {
-                Text =
-                    "Later",
-
-                Left =
-                    210,
-
-                Top =
-                    75,
-
-                Width =
-                    90,
-
-                Height =
-                    28
-            };
-
-        _suspectedGamePanel.Controls.Add(
-            suspectedGameTitleLabel
-        );
-
-        _suspectedGamePanel.Controls.Add(
-            _suspectedGameNameLabel
-        );
-
-        _suspectedGamePanel.Controls.Add(
-            _suspectedGameProcessLabel
-        );
-
-        _suspectedGamePanel.Controls.Add(
-            _suspectedGameYesButton
-        );
-
-        _suspectedGamePanel.Controls.Add(
-            _suspectedGameNoButton
-        );
-
-        _suspectedGamePanel.Controls.Add(
-            _suspectedGameLaterButton
-        );
-
-        // =====================================================
-        // Settings
-        // =====================================================
-
-        _startMinimizedCheckBox =
-            new CheckBox
-            {
-                Text =
-                    "Start minimized",
-
-                Left =
-                    20,
-
-                Width =
-                    180,
-
-                Checked =
-                    _settings.StartMinimized
-            };
-
-        _startWithWindowsCheckBox =
-            new CheckBox
-            {
-                Text =
-                    "Start with Windows",
-
-                Left =
-                    220,
-
-                Width =
-                    180,
-
-                Checked =
-                    StartupService.IsEnabled()
-            };
-
-        // =====================================================
-        // Buttons
-        // =====================================================
-
-        _refreshButton =
-            new Button
-            {
-                Text =
-                    "Refresh Presence",
-
-                Left =
-                    20,
-
-                Width =
-                    140,
-
-                Height =
-                    35
-            };
-
-        _clearButton =
-            new Button
-            {
-                Text =
-                    "Clear",
-
-                Left =
-                    170,
-
-                Width =
-                    100,
-
-                Height =
-                    35
-            };
-
-        // =====================================================
-        // Status
-        // =====================================================
-
-        _statusLabel =
-            new Label
-            {
-                Text =
-                    "Discord: initializing...",
-
-                Left =
-                    20,
-
-                Width =
-                    480,
-
-                Height =
-                    30
-            };
-
-        // =====================================================
-        // Add controls
-        // =====================================================
-
-        Controls.Add(
-            projectTitleLabel
-        );
-
-        Controls.Add(
-            _detectedProjectLabel
-        );
-
-        Controls.Add(
-            appTitleLabel
-        );
-
-        Controls.Add(
-            _detectedAppLabel
-        );
-
-        Controls.Add(
-            windowTitleTitleLabel
-        );
-
-        Controls.Add(
-            _windowTitleLabel
-        );
-
-        Controls.Add(
-            _suspectedGamePanel
-        );
-
-        Controls.Add(
-            _startMinimizedCheckBox
-        );
-
-        Controls.Add(
-            _startWithWindowsCheckBox
-        );
-
-        Controls.Add(
-            _refreshButton
-        );
-
-        Controls.Add(
-            _clearButton
-        );
-
-        Controls.Add(
-            _statusLabel
-        );
-
-        // =====================================================
-        // Main UI events
-        // =====================================================
-
-        _suspectedGameYesButton.Click += (_, _) =>
-        {
-            ResolveSuspectedGameYes();
-        };
-
-        _suspectedGameNoButton.Click += (_, _) =>
-        {
-            ResolveSuspectedGameNo();
-        };
-
-        _suspectedGameLaterButton.Click += (_, _) =>
-        {
-            ResolveSuspectedGameLater();
-        };
-
-        _refreshButton.Click += (_, _) =>
-        {
-            _presenceController.RefreshPresence();
-
-            UpdatePresenceUi();
-        };
-
-        _clearButton.Click += (_, _) =>
-        {
-            _presenceController.ClearPresence();
-
-            UpdatePresenceUi();
-        };
-
-        _startMinimizedCheckBox.CheckedChanged += (_, _) =>
-        {
-            _settings.StartMinimized =
-                _startMinimizedCheckBox.Checked;
-
-            SettingsService.Save(
-                _settings
-            );
-        };
-
-        _startWithWindowsCheckBox.CheckedChanged += (_, _) =>
-        {
-            try
-            {
-                StartupService.SetEnabled(
-                    _startWithWindowsCheckBox.Checked
-                );
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Could not update Windows startup:\n\n{ex.Message}",
-                    "Discord Presence",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-
-                _startWithWindowsCheckBox.Checked =
-                    StartupService.IsEnabled();
-            }
-        };
-
-        // =====================================================
-        // Tray menu
-        // =====================================================
+        // -----------------------------------------------------
+        // Events
+        // -----------------------------------------------------
+
+        WireEvents();
+
+        // -----------------------------------------------------
+        // Tray
+        // -----------------------------------------------------
 
         _trayMenu =
             new ContextMenuStrip();
@@ -679,51 +125,36 @@ public sealed class MainForm : Form
         _traySuspectQuestionItem =
             new ToolStripMenuItem
             {
-                Enabled =
-                    false,
-
-                Visible =
-                    false
+                Enabled = false,
+                Visible = false
             };
 
         _traySuspectYesItem =
-            new ToolStripMenuItem(
-                "Yes"
-            )
+            new ToolStripMenuItem("Yes")
             {
-                Visible =
-                    false
+                Visible = false
             };
 
         _traySuspectNoItem =
-            new ToolStripMenuItem(
-                "No"
-            )
+            new ToolStripMenuItem("No")
             {
-                Visible =
-                    false
+                Visible = false
             };
 
         _traySuspectLaterItem =
-            new ToolStripMenuItem(
-                "Later"
-            )
+            new ToolStripMenuItem("Later")
             {
-                Visible =
-                    false
+                Visible = false
             };
 
         _traySuspectSeparator =
             new ToolStripSeparator
             {
-                Visible =
-                    false
+                Visible = false
             };
 
         var openMenuItem =
-            new ToolStripMenuItem(
-                "Open"
-            );
+            new ToolStripMenuItem("Open");
 
         var clearPresenceMenuItem =
             new ToolStripMenuItem(
@@ -731,9 +162,7 @@ public sealed class MainForm : Form
             );
 
         var exitMenuItem =
-            new ToolStripMenuItem(
-                "Exit"
-            );
+            new ToolStripMenuItem("Exit");
 
         _traySuspectYesItem.Click += (_, _) =>
         {
@@ -757,7 +186,8 @@ public sealed class MainForm : Form
 
         clearPresenceMenuItem.Click += (_, _) =>
         {
-            _presenceController.ClearPresence();
+            _presenceController
+                .ClearPresence();
 
             UpdatePresenceUi();
         };
@@ -803,10 +233,6 @@ public sealed class MainForm : Form
             exitMenuItem
         );
 
-        // =====================================================
-        // Tray icon
-        // =====================================================
-
         _trayIcon =
             new NotifyIcon
             {
@@ -829,23 +255,22 @@ public sealed class MainForm : Form
             ShowFromTray();
         };
 
-        // =====================================================
-        // Initialize controller
-        // =====================================================
+        // -----------------------------------------------------
+        // Controller initialize
+        // -----------------------------------------------------
 
         _presenceController.Initialize();
 
         UpdatePresenceUi();
 
-        // =====================================================
-        // Timer
-        // =====================================================
+        // -----------------------------------------------------
+        // Detection timer
+        // -----------------------------------------------------
 
         _detectionTimer =
             new System.Windows.Forms.Timer
             {
-                Interval =
-                    1000
+                Interval = 1000
             };
 
         _detectionTimer.Tick += (_, _) =>
@@ -859,9 +284,9 @@ public sealed class MainForm : Form
 
         _detectionTimer.Start();
 
-        // =====================================================
-        // Window events
-        // =====================================================
+        // -----------------------------------------------------
+        // Window
+        // -----------------------------------------------------
 
         FormClosing +=
             MainForm_FormClosing;
@@ -878,6 +303,144 @@ public sealed class MainForm : Form
     }
 
     // =========================================================
+    // Runtime assets
+    // =========================================================
+
+    private void ApplyRuntimeAssets()
+    {
+        _projectIcon.Image =
+            UiAssets.Folder(
+                Math.Min(
+                    _projectIcon.Width,
+                    _projectIcon.Height
+                )
+            );
+
+        _applicationIcon.Image =
+            UiAssets.App(
+                Math.Min(
+                    _applicationIcon.Width,
+                    _applicationIcon.Height
+                )
+            );
+
+        _windowIcon.Image =
+            UiAssets.Window(
+                Math.Min(
+                    _windowIcon.Width,
+                    _windowIcon.Height
+                )
+            );
+
+        _suspectedGameIcon.Image =
+            UiAssets.Gamepad(
+                Math.Min(
+                    _suspectedGameIcon.Width,
+                    _suspectedGameIcon.Height
+                )
+            );
+
+        _manageGameOverridesButton.Image =
+            UiAssets.Settings(18);
+
+        _refreshButton.Image =
+            UiAssets.Refresh(18);
+
+        _clearButton.Image =
+            UiAssets.Trash(18);
+
+        _statusIcon.Image =
+            UiAssets.Info(
+                Math.Min(
+                    _statusIcon.Width,
+                    _statusIcon.Height
+                )
+            );
+    }
+
+    // =========================================================
+    // Runtime events
+    // =========================================================
+
+    private void WireEvents()
+    {
+        _suspectedGameYesButton.Click += (_, _) =>
+        {
+            ResolveSuspectedGameYes();
+        };
+
+        _suspectedGameNoButton.Click += (_, _) =>
+        {
+            ResolveSuspectedGameNo();
+        };
+
+        _suspectedGameLaterButton.Click += (_, _) =>
+        {
+            ResolveSuspectedGameLater();
+        };
+
+        _manageGameOverridesButton.Click += (_, _) =>
+        {
+            using var dialog =
+                new GameOverridesForm(
+                    _presenceController
+                );
+
+            dialog.ShowDialog(this);
+
+            UpdatePresenceUi();
+        };
+
+        _refreshButton.Click += (_, _) =>
+        {
+            _presenceController
+                .RefreshPresence();
+
+            UpdatePresenceUi();
+        };
+
+        _clearButton.Click += (_, _) =>
+        {
+            _presenceController
+                .ClearPresence();
+
+            UpdatePresenceUi();
+        };
+
+        _startMinimizedCheckBox.CheckedChanged += (_, _) =>
+        {
+            _settings.StartMinimized =
+                _startMinimizedCheckBox.Checked;
+
+            SettingsService.Save(
+                _settings
+            );
+        };
+
+        _startWithWindowsCheckBox.CheckedChanged += (_, _) =>
+        {
+            try
+            {
+                StartupService.SetEnabled(
+                    _startWithWindowsCheckBox.Checked
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Could not update Windows startup:\n\n{ex.Message}",
+                    "Discord Presence",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+
+                _startWithWindowsCheckBox.Checked =
+                    StartupService.IsEnabled();
+            }
+        };
+    }
+
+    // =========================================================
     // Suspected game actions
     // =========================================================
 
@@ -885,6 +448,8 @@ public sealed class MainForm : Form
     {
         _presenceController
             .ConfirmSuspectedGame();
+
+        CloseSuspectedGameToast();
 
         UpdatePresenceUi();
     }
@@ -894,6 +459,8 @@ public sealed class MainForm : Form
         _presenceController
             .RejectSuspectedGame();
 
+        CloseSuspectedGameToast();
+
         UpdatePresenceUi();
     }
 
@@ -902,11 +469,13 @@ public sealed class MainForm : Form
         _presenceController
             .DeferSuspectedGame();
 
+        CloseSuspectedGameToast();
+
         UpdatePresenceUi();
     }
 
     // =========================================================
-    // Notification
+    // Suspected game toast
     // =========================================================
 
     private void NotifyNewSuspectedGame()
@@ -929,7 +498,7 @@ public sealed class MainForm : Form
         _lastNotifiedSuspectId =
             suspect.Id;
 
-        _suspectedGameToast?.Close();
+        CloseSuspectedGameToast();
 
         _suspectedGameToast =
             new SuspectedGameToastForm(
@@ -960,6 +529,25 @@ public sealed class MainForm : Form
         _suspectedGameToast.Show();
     }
 
+    private void CloseSuspectedGameToast()
+    {
+        if (_suspectedGameToast is null)
+        {
+            return;
+        }
+
+        var toast =
+            _suspectedGameToast;
+
+        _suspectedGameToast =
+            null;
+
+        if (!toast.IsDisposed)
+        {
+            toast.Close();
+        }
+    }
+
     // =========================================================
     // Presence UI
     // =========================================================
@@ -982,7 +570,90 @@ public sealed class MainForm : Form
             _presenceController
                 .StatusText;
 
+        UpdateStatusStyle();
+
         UpdateSuspectedGameUi();
+    }
+
+    // =========================================================
+    // Status
+    // =========================================================
+
+    private void UpdateStatusStyle()
+    {
+        var status =
+            _presenceController
+                .StatusText;
+
+        if (
+            status.Contains(
+                "failed",
+                StringComparison.OrdinalIgnoreCase
+            ) ||
+            status.Contains(
+                "could not",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            _statusLabel.ForeColor =
+                UiTheme.Danger;
+
+            _statusIcon.Image =
+                UiAssets.Warning(20);
+
+            return;
+        }
+
+        if (
+            status.Contains(
+                "Suspected",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            _statusLabel.ForeColor =
+                UiTheme.Accent;
+
+            _statusIcon.Image =
+                UiAssets.Warning(20);
+
+            return;
+        }
+
+        if (
+            status.Contains(
+                "updated",
+                StringComparison.OrdinalIgnoreCase
+            ) ||
+            status.Contains(
+                "confirmed",
+                StringComparison.OrdinalIgnoreCase
+            ) ||
+            status.Contains(
+                "cleared",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            _statusLabel.ForeColor =
+                Color.FromArgb(
+                    22,
+                    163,
+                    74
+                );
+
+            _statusIcon.Image =
+                UiAssets.Check(20);
+
+            return;
+        }
+
+        _statusLabel.ForeColor =
+            UiTheme.TextSecondary;
+
+        _statusIcon.Image =
+            UiAssets.Info(20);
     }
 
     // =========================================================
@@ -1017,10 +688,6 @@ public sealed class MainForm : Form
                 $"Is \"{suspect.ProcessName}.exe\" a game?";
         }
 
-        // -----------------------------------------------------
-        // Tray suspect block
-        // -----------------------------------------------------
-
         _traySuspectQuestionItem.Visible =
             hasSuspect;
 
@@ -1036,54 +703,62 @@ public sealed class MainForm : Form
         _traySuspectSeparator.Visible =
             hasSuspect;
 
-        // -----------------------------------------------------
-        // Dynamic window layout
-        // -----------------------------------------------------
-
         if (hasSuspect)
         {
             _startMinimizedCheckBox.Top =
-                350;
+                338;
 
             _startWithWindowsCheckBox.Top =
-                350;
+                338;
+
+            _manageGameOverridesButton.Top =
+                368;
 
             _refreshButton.Top =
-                395;
+                408;
 
             _clearButton.Top =
-                395;
+                408;
+
+            _statusIcon.Top =
+                452;
 
             _statusLabel.Top =
                 450;
 
             Height =
-                530;
+                535;
         }
         else
         {
             _startMinimizedCheckBox.Top =
-                225;
+                210;
 
             _startWithWindowsCheckBox.Top =
-                225;
+                210;
+
+            _manageGameOverridesButton.Top =
+                240;
 
             _refreshButton.Top =
-                275;
+                280;
 
             _clearButton.Top =
-                275;
+                280;
+
+            _statusIcon.Top =
+                324;
 
             _statusLabel.Top =
-                335;
+                322;
 
             Height =
-                430;
+                405;
         }
     }
 
     // =========================================================
-    // Tray window
+    // Tray
     // =========================================================
 
     private void HideToTray()
@@ -1122,7 +797,7 @@ public sealed class MainForm : Form
     }
 
     // =========================================================
-    // Close button
+    // Close
     // =========================================================
 
     private void MainForm_FormClosing(
@@ -1179,10 +854,7 @@ public sealed class MainForm : Form
 
         _detectionTimer.Dispose();
 
-        _suspectedGameToast?.Close();
-
-        _suspectedGameToast =
-            null;
+        CloseSuspectedGameToast();
 
         _presenceController.Dispose();
 
@@ -1192,6 +864,8 @@ public sealed class MainForm : Form
         _trayIcon.Dispose();
 
         _trayMenu.Dispose();
+
+        UiAssets.Dispose();
 
         base.OnFormClosed(e);
     }
