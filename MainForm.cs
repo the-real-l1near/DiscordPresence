@@ -105,6 +105,13 @@ public sealed class MainForm : Form
         _statusLabel;
 
     // =========================================================
+    // Notification
+    // =========================================================
+
+    private SuspectedGameToastForm?
+        _suspectedGameToast;
+
+    // =========================================================
     // Constructor
     // =========================================================
 
@@ -922,13 +929,35 @@ public sealed class MainForm : Form
         _lastNotifiedSuspectId =
             suspect.Id;
 
-        _trayIcon.ShowBalloonTip(
-            5000,
-            "Suspected game detected",
-            $"Is \"{suspect.ProcessName}.exe\" a game?\n" +
-            "Right-click the tray icon to confirm.",
-            ToolTipIcon.Info
-        );
+        _suspectedGameToast?.Close();
+
+        _suspectedGameToast =
+            new SuspectedGameToastForm(
+                suspect,
+
+                onYes: () =>
+                {
+                    ResolveSuspectedGameYes();
+                },
+
+                onNo: () =>
+                {
+                    ResolveSuspectedGameNo();
+                },
+
+                onLater: () =>
+                {
+                    ResolveSuspectedGameLater();
+                }
+            );
+
+        _suspectedGameToast.FormClosed += (_, _) =>
+        {
+            _suspectedGameToast =
+                null;
+        };
+
+        _suspectedGameToast.Show();
     }
 
     // =========================================================
@@ -1149,6 +1178,11 @@ public sealed class MainForm : Form
         _detectionTimer.Stop();
 
         _detectionTimer.Dispose();
+
+        _suspectedGameToast?.Close();
+
+        _suspectedGameToast =
+            null;
 
         _presenceController.Dispose();
 
