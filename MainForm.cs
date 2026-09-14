@@ -65,11 +65,6 @@ public sealed partial class MainForm : Form
     {
         InitializeComponent();
 
-        // Keep standard buttons in the Designer; use centered painting at runtime.
-        _manageGameOverridesButton = ReplaceActionButton(_manageGameOverridesButton);
-        _refreshButton = ReplaceActionButton(_refreshButton);
-        _clearButton = ReplaceActionButton(_clearButton);
-
         // -----------------------------------------------------
         // Settings
         // -----------------------------------------------------
@@ -156,7 +151,9 @@ public sealed partial class MainForm : Form
             };
 
         var openMenuItem =
-            new ToolStripMenuItem("Open");
+            new ToolStripMenuItem(
+                "Open"
+            );
 
         var clearPresenceMenuItem =
             new ToolStripMenuItem(
@@ -164,7 +161,13 @@ public sealed partial class MainForm : Form
             );
 
         var exitMenuItem =
-            new ToolStripMenuItem("Exit");
+            new ToolStripMenuItem(
+                "Exit"
+            );
+
+        // -----------------------------------------------------
+        // Tray events
+        // -----------------------------------------------------
 
         _traySuspectYesItem.Click += (_, _) =>
         {
@@ -198,6 +201,10 @@ public sealed partial class MainForm : Form
         {
             ExitApplication();
         };
+
+        // -----------------------------------------------------
+        // Tray items
+        // -----------------------------------------------------
 
         _trayMenu.Items.Add(
             _traySuspectQuestionItem
@@ -235,6 +242,10 @@ public sealed partial class MainForm : Form
             exitMenuItem
         );
 
+        // -----------------------------------------------------
+        // Tray icon
+        // -----------------------------------------------------
+
         _trayIcon =
             new NotifyIcon
             {
@@ -261,7 +272,8 @@ public sealed partial class MainForm : Form
         // Controller initialize
         // -----------------------------------------------------
 
-        _presenceController.Initialize();
+        _presenceController
+            .Initialize();
 
         UpdatePresenceUi();
 
@@ -272,12 +284,14 @@ public sealed partial class MainForm : Form
         _detectionTimer =
             new System.Windows.Forms.Timer
             {
-                Interval = 1000
+                Interval =
+                    1000
             };
 
         _detectionTimer.Tick += (_, _) =>
         {
-            _presenceController.Tick();
+            _presenceController
+                .Tick();
 
             UpdatePresenceUi();
 
@@ -298,7 +312,8 @@ public sealed partial class MainForm : Form
             if (_settings.StartMinimized)
             {
                 BeginInvoke(
-                    () => HideToTray()
+                    () =>
+                        HideToTray()
                 );
             }
         };
@@ -307,57 +322,6 @@ public sealed partial class MainForm : Form
     // =========================================================
     // Runtime assets
     // =========================================================
-
-    private static Button ReplaceActionButton(Button original)
-    {
-        var parent = original.Parent;
-        if (parent is null)
-            throw new InvalidOperationException("Action button has no parent.");
-
-        int index = parent.Controls.GetChildIndex(original);
-        var replacement = new CenteredContentButton
-        {
-            Name = original.Name,
-            Bounds = original.Bounds,
-            Text = original.Text,
-            Font = original.Font,
-            BackColor = original.BackColor,
-            ForeColor = original.ForeColor,
-            FlatStyle = original.FlatStyle,
-            UseVisualStyleBackColor = original.UseVisualStyleBackColor,
-            TabIndex = original.TabIndex,
-            TabStop = original.TabStop,
-            Anchor = original.Anchor,
-            Dock = original.Dock,
-            Margin = original.Margin,
-            Padding = original.Padding,
-            ImageAlign = original.ImageAlign,
-            TextAlign = original.TextAlign,
-            TextImageRelation = original.TextImageRelation,
-            Enabled = original.Enabled,
-            UseMnemonic = original.UseMnemonic,
-            AccessibleName = original.AccessibleName,
-            AccessibleDescription = original.AccessibleDescription
-        };
-        replacement.FlatAppearance.BorderColor = original.FlatAppearance.BorderColor;
-        replacement.FlatAppearance.BorderSize = original.FlatAppearance.BorderSize;
-        replacement.FlatAppearance.MouseOverBackColor = original.FlatAppearance.MouseOverBackColor;
-        replacement.FlatAppearance.MouseDownBackColor = original.FlatAppearance.MouseDownBackColor;
-
-        parent.SuspendLayout();
-        try
-        {
-            parent.Controls.Remove(original);
-            parent.Controls.Add(replacement);
-            parent.Controls.SetChildIndex(replacement, index);
-        }
-        finally
-        {
-            parent.ResumeLayout(false);
-        }
-        original.Dispose();
-        return replacement;
-    }
 
     private void ApplyRuntimeAssets()
     {
@@ -394,19 +358,29 @@ public sealed partial class MainForm : Form
             );
 
         _manageGameOverridesButton.Image =
-            UiAssets.Settings(24);
+            UiAssets.Settings(
+                24
+            );
 
         _refreshButton.Image =
-            UiAssets.Refresh(20);
+            UiAssets.Refresh(
+                20
+            );
 
         _clearButton.Image =
-            UiAssets.Trash(20);
+            UiAssets.Trash(
+                20
+            );
 
-        ((CenteredContentButton)_refreshButton).HoverImage =
-            UiAssets.RefreshHover(20);
+        _refreshButton.HoverImage =
+            UiAssets.RefreshHover(
+                20
+            );
 
-        ((CenteredContentButton)_clearButton).HoverImage =
-            UiAssets.TrashHover(20);
+        _clearButton.HoverImage =
+            UiAssets.TrashHover(
+                20
+            );
 
         _statusIcon.Image =
             UiAssets.Info(
@@ -425,8 +399,13 @@ public sealed partial class MainForm : Form
     {
         Resize += (_, _) =>
         {
-            if (WindowState == FormWindowState.Normal)
+            if (
+                WindowState ==
+                FormWindowState.Normal
+            )
+            {
                 UpdateSuspectedGameUi();
+            }
         };
 
         _suspectedGameYesButton.Click += (_, _) =>
@@ -794,10 +773,17 @@ public sealed partial class MainForm : Form
         // Automatic vertical layout
         // -----------------------------------------------------
 
-        // A minimized window has a different client area. Do not use it to
-        // overwrite the restored window size while the detection timer runs.
-        if (WindowState != FormWindowState.Normal)
+        /*
+         * Minimized window có client area khác.
+         * Không dùng size đó để overwrite restored size.
+         */
+        if (
+            WindowState !=
+            FormWindowState.Normal
+        )
+        {
             return;
+        }
 
         var settingsTop =
             hasSuspect
@@ -863,9 +849,20 @@ public sealed partial class MainForm : Form
                 _statusLabel.Bottom
             );
 
-        int desiredHeight = contentBottom + 18;
-        if (ClientSize.Height != desiredHeight)
-            ClientSize = new Size(ClientSize.Width, desiredHeight);
+        var desiredHeight =
+            contentBottom + 18;
+
+        if (
+            ClientSize.Height !=
+            desiredHeight
+        )
+        {
+            ClientSize =
+                new Size(
+                    ClientSize.Width,
+                    desiredHeight
+                );
+        }
     }
 
     // =========================================================
@@ -985,146 +982,5 @@ public sealed partial class MainForm : Form
         base.OnFormClosed(
             e
         );
-    }
-}
-
-// Used only by the three main action buttons.
-public sealed class CenteredContentButton : System.Windows.Forms.Button
-{
-    // Images are owned and disposed by UiAssets.
-    [System.ComponentModel.Browsable(false)]
-    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-    public Image? HoverImage { get; set; }
-
-    private bool _hovered;
-    private bool _mousePressed;
-    private bool _spacePressed;
-
-    public CenteredContentButton()
-    {
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
-            ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-    }
-
-    protected override void OnMouseEnter(EventArgs e)
-    {
-        _hovered = true;
-        base.OnMouseEnter(e);
-        Invalidate();
-    }
-
-    protected override void OnMouseLeave(EventArgs e)
-    {
-        _hovered = false;
-        base.OnMouseLeave(e);
-        Invalidate();
-    }
-
-    protected override void OnMouseDown(MouseEventArgs e)
-    {
-        if (e.Button == MouseButtons.Left) _mousePressed = true;
-        base.OnMouseDown(e);
-        Invalidate();
-    }
-
-    protected override void OnMouseUp(MouseEventArgs e)
-    {
-        if (e.Button == MouseButtons.Left) _mousePressed = false;
-        base.OnMouseUp(e);
-        Invalidate();
-    }
-
-    protected override void OnMouseCaptureChanged(EventArgs e)
-    {
-        if (!Capture) _mousePressed = false;
-        base.OnMouseCaptureChanged(e);
-        Invalidate();
-    }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        if (e.KeyCode == Keys.Space) _spacePressed = true;
-        base.OnKeyDown(e);
-        Invalidate();
-    }
-
-    protected override void OnKeyUp(KeyEventArgs e)
-    {
-        if (e.KeyCode == Keys.Space) _spacePressed = false;
-        base.OnKeyUp(e);
-        Invalidate();
-    }
-
-    protected override void OnLostFocus(EventArgs e)
-    {
-        _spacePressed = false;
-        _mousePressed = false;
-        base.OnLostFocus(e);
-        Invalidate();
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        // Paint the content once, without the standard image/text layout.
-        bool pressed = Enabled && (_spacePressed || (_mousePressed && _hovered));
-        Color background = BackColor;
-        if (Enabled && (pressed || _hovered))
-        {
-            Color configured = pressed
-                ? FlatAppearance.MouseDownBackColor
-                : FlatAppearance.MouseOverBackColor;
-            background = configured.IsEmpty
-                ? ControlPaint.Dark(BackColor, pressed ? 0.12f : 0.05f)
-                : configured;
-        }
-
-        using (var brush = new SolidBrush(background))
-            e.Graphics.FillRectangle(brush, ClientRectangle);
-
-        bool hovering = Enabled && _hovered;
-        Color foreground = Enabled
-            ? (hovering ? Color.White : ForeColor)
-            : SystemColors.GrayText;
-        Image? displayedImage = hovering ? (HoverImage ?? Image) : Image;
-        Color border = FlatAppearance.BorderColor.IsEmpty
-            ? (Enabled ? ForeColor : SystemColors.GrayText) : FlatAppearance.BorderColor;
-        int borderWidth = FlatAppearance.BorderSize;
-        using (var pen = new Pen(border))
-        {
-            for (int i = 0; i < borderWidth; i++)
-                e.Graphics.DrawRectangle(pen, i, i, Width - 1 - 2 * i, Height - 1 - 2 * i);
-        }
-
-        var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPadding |
-            TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
-        if (!UseMnemonic) flags |= TextFormatFlags.NoPrefix;
-        else if (!ShowKeyboardCues) flags |= TextFormatFlags.HidePrefix;
-
-        int imageWidth = displayedImage == null ? 0 : displayedImage.Width;
-        int gap = displayedImage != null && Text.Length > 0
-            ? Math.Max(1, (int)Math.Round(4.0 * DeviceDpi / 96.0)) : 0;
-        int inset = Math.Max(borderWidth + 2, 3);
-        int available = Math.Max(0, ClientSize.Width - 2 * inset - imageWidth - gap);
-        int textWidth = Text.Length == 0 ? 0 : Math.Min(available,
-            TextRenderer.MeasureText(e.Graphics, Text, Font,
-                new Size(int.MaxValue, int.MaxValue), flags).Width);
-        int totalWidth = imageWidth + gap + textWidth;
-        int x = (ClientSize.Width - totalWidth) / 2;
-
-        if (displayedImage != null)
-        {
-            int y = (ClientSize.Height - displayedImage.Height) / 2;
-            if (Enabled) e.Graphics.DrawImageUnscaled(displayedImage, x, y);
-            else ControlPaint.DrawImageDisabled(e.Graphics, displayedImage, x, y, background);
-            x += imageWidth + gap;
-        }
-
-        if (textWidth > 0)
-            TextRenderer.DrawText(e.Graphics, Text, Font,
-                new Rectangle(x, 0, textWidth, ClientSize.Height), foreground, flags);
-
-        if (Focused && ShowFocusCues)
-            ControlPaint.DrawFocusRectangle(e.Graphics,
-                Rectangle.Inflate(ClientRectangle, -inset, -inset), foreground, background);
     }
 }

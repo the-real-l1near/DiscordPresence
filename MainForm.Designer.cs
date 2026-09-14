@@ -25,16 +25,17 @@ partial class MainForm
     private System.Windows.Forms.Label _suspectedGameTitleLabel = null!;
     private System.Windows.Forms.Label _suspectedGameNameLabel = null!;
     private System.Windows.Forms.Label _suspectedGameProcessLabel = null!;
-    private System.Windows.Forms.Button _suspectedGameYesButton = null!;
-    private System.Windows.Forms.Button _suspectedGameNoButton = null!;
-    private System.Windows.Forms.Button _suspectedGameLaterButton = null!;
+
+    private DiscordPresence.RoundedButton _suspectedGameYesButton = null!;
+    private DiscordPresence.RoundedButton _suspectedGameNoButton = null!;
+    private DiscordPresence.RoundedButton _suspectedGameLaterButton = null!;
 
     private System.Windows.Forms.CheckBox _startMinimizedCheckBox = null!;
     private System.Windows.Forms.CheckBox _startWithWindowsCheckBox = null!;
 
-    private System.Windows.Forms.Button _manageGameOverridesButton = null!;
-    private System.Windows.Forms.Button _refreshButton = null!;
-    private System.Windows.Forms.Button _clearButton = null!;
+    private DiscordPresence.RoundedButton _manageGameOverridesButton = null!;
+    private DiscordPresence.RoundedButton _refreshButton = null!;
+    private DiscordPresence.RoundedButton _clearButton = null!;
 
     private System.Windows.Forms.PictureBox _statusIcon = null!;
     private System.Windows.Forms.Label _statusLabel = null!;
@@ -54,7 +55,9 @@ partial class MainForm
             components.Dispose();
         }
 
-        base.Dispose(disposing);
+        base.Dispose(
+            disposing
+        );
     }
 
     // =========================================================
@@ -112,13 +115,13 @@ partial class MainForm
             new System.Windows.Forms.Label();
 
         _suspectedGameYesButton =
-            new System.Windows.Forms.Button();
+            new DiscordPresence.RoundedButton();
 
         _suspectedGameNoButton =
-            new System.Windows.Forms.Button();
+            new DiscordPresence.RoundedButton();
 
         _suspectedGameLaterButton =
-            new System.Windows.Forms.Button();
+            new DiscordPresence.RoundedButton();
 
         _startMinimizedCheckBox =
             new System.Windows.Forms.CheckBox();
@@ -127,19 +130,37 @@ partial class MainForm
             new System.Windows.Forms.CheckBox();
 
         _manageGameOverridesButton =
-            new System.Windows.Forms.Button();
+            new DiscordPresence.RoundedButton();
 
         _refreshButton =
-            new System.Windows.Forms.Button();
+            new DiscordPresence.RoundedButton();
 
         _clearButton =
-            new System.Windows.Forms.Button();
+            new DiscordPresence.RoundedButton();
 
         _statusIcon =
             new System.Windows.Forms.PictureBox();
 
         _statusLabel =
             new System.Windows.Forms.Label();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _projectIcon).BeginInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _applicationIcon).BeginInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _windowIcon).BeginInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _suspectedGameIcon).BeginInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _statusIcon).BeginInit();
+
+        _informationPanel.SuspendLayout();
+        _suspectedGamePanel.SuspendLayout();
 
         // =====================================================
         // Information panel
@@ -153,13 +174,19 @@ partial class MainForm
             );
 
         _informationPanel.Location =
-            new System.Drawing.Point(7, 9);
+            new System.Drawing.Point(
+                7,
+                9
+            );
 
         _informationPanel.Name =
             "_informationPanel";
 
         _informationPanel.Size =
-            new System.Drawing.Size(373, 185);
+            new System.Drawing.Size(
+                373,
+                185
+            );
 
         _informationPanel.TabIndex =
             0;
@@ -172,13 +199,19 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _projectIcon.Location =
-            new System.Drawing.Point(3, 3);
+            new System.Drawing.Point(
+                3,
+                3
+            );
 
         _projectIcon.Name =
             "_projectIcon";
 
         _projectIcon.Size =
-            new System.Drawing.Size(59, 60);
+            new System.Drawing.Size(
+                59,
+                60
+            );
 
         _projectIcon.SizeMode =
             System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -201,13 +234,19 @@ partial class MainForm
             );
 
         _projectTitleLabel.Location =
-            new System.Drawing.Point(72, 12);
+            new System.Drawing.Point(
+                72,
+                12
+            );
 
         _projectTitleLabel.Name =
             "_projectTitleLabel";
 
         _projectTitleLabel.Size =
-            new System.Drawing.Size(160, 20);
+            new System.Drawing.Size(
+                160,
+                20
+            );
 
         _projectTitleLabel.TabIndex =
             1;
@@ -235,13 +274,19 @@ partial class MainForm
             );
 
         _detectedProjectLabel.Location =
-            new System.Drawing.Point(72, 33);
+            new System.Drawing.Point(
+                72,
+                33
+            );
 
         _detectedProjectLabel.Name =
             "_detectedProjectLabel";
 
         _detectedProjectLabel.Size =
-            new System.Drawing.Size(298, 22);
+            new System.Drawing.Size(
+                298,
+                22
+            );
 
         _detectedProjectLabel.TabIndex =
             2;
@@ -257,13 +302,19 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _applicationIcon.Location =
-            new System.Drawing.Point(3, 64);
+            new System.Drawing.Point(
+                3,
+                64
+            );
 
         _applicationIcon.Name =
             "_applicationIcon";
 
         _applicationIcon.Size =
-            new System.Drawing.Size(59, 58);
+            new System.Drawing.Size(
+                59,
+                58
+            );
 
         _applicationIcon.SizeMode =
             System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -286,13 +337,19 @@ partial class MainForm
             );
 
         _applicationTitleLabel.Location =
-            new System.Drawing.Point(72, 72);
+            new System.Drawing.Point(
+                72,
+                72
+            );
 
         _applicationTitleLabel.Name =
             "_applicationTitleLabel";
 
         _applicationTitleLabel.Size =
-            new System.Drawing.Size(160, 20);
+            new System.Drawing.Size(
+                160,
+                20
+            );
 
         _applicationTitleLabel.TabIndex =
             4;
@@ -320,13 +377,19 @@ partial class MainForm
             );
 
         _detectedAppLabel.Location =
-            new System.Drawing.Point(72, 93);
+            new System.Drawing.Point(
+                72,
+                93
+            );
 
         _detectedAppLabel.Name =
             "_detectedAppLabel";
 
         _detectedAppLabel.Size =
-            new System.Drawing.Size(298, 22);
+            new System.Drawing.Size(
+                298,
+                22
+            );
 
         _detectedAppLabel.TabIndex =
             5;
@@ -342,13 +405,19 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _windowIcon.Location =
-            new System.Drawing.Point(3, 123);
+            new System.Drawing.Point(
+                3,
+                123
+            );
 
         _windowIcon.Name =
             "_windowIcon";
 
         _windowIcon.Size =
-            new System.Drawing.Size(59, 60);
+            new System.Drawing.Size(
+                59,
+                60
+            );
 
         _windowIcon.SizeMode =
             System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -371,19 +440,29 @@ partial class MainForm
             );
 
         _windowTitleTitleLabel.Location =
-            new System.Drawing.Point(72, 132);
+            new System.Drawing.Point(
+                72,
+                132
+            );
 
         _windowTitleTitleLabel.Name =
             "_windowTitleTitleLabel";
 
         _windowTitleTitleLabel.Size =
-            new System.Drawing.Size(160, 20);
+            new System.Drawing.Size(
+                160,
+                20
+            );
 
         _windowTitleTitleLabel.TabIndex =
             7;
 
         _windowTitleTitleLabel.Text =
             "Window title";
+
+        // =====================================================
+        // Window value
+        // =====================================================
 
         _windowTitleLabel.AutoEllipsis =
             true;
@@ -396,13 +475,19 @@ partial class MainForm
             );
 
         _windowTitleLabel.Location =
-            new System.Drawing.Point(72, 153);
+            new System.Drawing.Point(
+                72,
+                153
+            );
 
         _windowTitleLabel.Name =
             "_windowTitleLabel";
 
         _windowTitleLabel.Size =
-            new System.Drawing.Size(298, 30);
+            new System.Drawing.Size(
+                298,
+                30
+            );
 
         _windowTitleLabel.TabIndex =
             8;
@@ -465,13 +550,19 @@ partial class MainForm
             System.Windows.Forms.BorderStyle.FixedSingle;
 
         _suspectedGamePanel.Location =
-            new System.Drawing.Point(9, 204);
+            new System.Drawing.Point(
+                9,
+                204
+            );
 
         _suspectedGamePanel.Name =
             "_suspectedGamePanel";
 
         _suspectedGamePanel.Size =
-            new System.Drawing.Size(373, 120);
+            new System.Drawing.Size(
+                373,
+                120
+            );
 
         _suspectedGamePanel.TabIndex =
             1;
@@ -500,7 +591,10 @@ partial class MainForm
             "_suspectedGameIcon";
 
         _suspectedGameIcon.Size =
-            new System.Drawing.Size(64, 63);
+            new System.Drawing.Size(
+                64,
+                63
+            );
 
         _suspectedGameIcon.SizeMode =
             System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -531,7 +625,10 @@ partial class MainForm
             );
 
         _suspectedGameTitleLabel.Location =
-            new System.Drawing.Point(74, 10);
+            new System.Drawing.Point(
+                74,
+                10
+            );
 
         _suspectedGameTitleLabel.Name =
             "_suspectedGameTitleLabel";
@@ -563,13 +660,19 @@ partial class MainForm
             );
 
         _suspectedGameNameLabel.Location =
-            new System.Drawing.Point(74, 33);
+            new System.Drawing.Point(
+                74,
+                33
+            );
 
         _suspectedGameNameLabel.Name =
             "_suspectedGameNameLabel";
 
         _suspectedGameNameLabel.Size =
-            new System.Drawing.Size(280, 20);
+            new System.Drawing.Size(
+                280,
+                20
+            );
 
         _suspectedGameNameLabel.TabIndex =
             2;
@@ -592,13 +695,19 @@ partial class MainForm
             );
 
         _suspectedGameProcessLabel.Location =
-            new System.Drawing.Point(74, 54);
+            new System.Drawing.Point(
+                74,
+                54
+            );
 
         _suspectedGameProcessLabel.Name =
             "_suspectedGameProcessLabel";
 
         _suspectedGameProcessLabel.Size =
-            new System.Drawing.Size(280, 20);
+            new System.Drawing.Size(
+                280,
+                20
+            );
 
         _suspectedGameProcessLabel.TabIndex =
             3;
@@ -617,10 +726,37 @@ partial class MainForm
                 242
             );
 
-        _suspectedGameYesButton.FlatStyle =
-            System.Windows.Forms.FlatStyle.Flat;
+        _suspectedGameYesButton.CornerRadius =
+            8;
+
+        _suspectedGameYesButton.FlatAppearance.BorderColor =
+            System.Drawing.Color.FromArgb(
+                88,
+                101,
+                242
+            );
+
+        _suspectedGameYesButton.FlatAppearance.BorderSize =
+            1;
+
+        _suspectedGameYesButton.FlatAppearance.MouseOverBackColor =
+            System.Drawing.Color.FromArgb(
+                71,
+                82,
+                196
+            );
+
+        _suspectedGameYesButton.FlatAppearance.MouseDownBackColor =
+            System.Drawing.Color.FromArgb(
+                71,
+                82,
+                196
+            );
 
         _suspectedGameYesButton.ForeColor =
+            System.Drawing.Color.White;
+
+        _suspectedGameYesButton.HoverForeColor =
             System.Drawing.Color.White;
 
         _suspectedGameYesButton.Location =
@@ -654,8 +790,32 @@ partial class MainForm
         _suspectedGameNoButton.BackColor =
             System.Drawing.Color.White;
 
-        _suspectedGameNoButton.FlatStyle =
-            System.Windows.Forms.FlatStyle.Flat;
+        _suspectedGameNoButton.CornerRadius =
+            8;
+
+        _suspectedGameNoButton.FlatAppearance.BorderColor =
+            System.Drawing.Color.FromArgb(
+                210,
+                216,
+                226
+            );
+
+        _suspectedGameNoButton.FlatAppearance.BorderSize =
+            1;
+
+        _suspectedGameNoButton.FlatAppearance.MouseOverBackColor =
+            System.Drawing.Color.FromArgb(
+                241,
+                245,
+                249
+            );
+
+        _suspectedGameNoButton.FlatAppearance.MouseDownBackColor =
+            System.Drawing.Color.FromArgb(
+                232,
+                234,
+                255
+            );
 
         _suspectedGameNoButton.ForeColor =
             System.Drawing.Color.FromArgb(
@@ -695,8 +855,32 @@ partial class MainForm
         _suspectedGameLaterButton.BackColor =
             System.Drawing.Color.White;
 
-        _suspectedGameLaterButton.FlatStyle =
-            System.Windows.Forms.FlatStyle.Flat;
+        _suspectedGameLaterButton.CornerRadius =
+            8;
+
+        _suspectedGameLaterButton.FlatAppearance.BorderColor =
+            System.Drawing.Color.FromArgb(
+                210,
+                216,
+                226
+            );
+
+        _suspectedGameLaterButton.FlatAppearance.BorderSize =
+            1;
+
+        _suspectedGameLaterButton.FlatAppearance.MouseOverBackColor =
+            System.Drawing.Color.FromArgb(
+                241,
+                245,
+                249
+            );
+
+        _suspectedGameLaterButton.FlatAppearance.MouseDownBackColor =
+            System.Drawing.Color.FromArgb(
+                232,
+                234,
+                255
+            );
 
         _suspectedGameLaterButton.ForeColor =
             System.Drawing.Color.FromArgb(
@@ -776,7 +960,10 @@ partial class MainForm
             );
 
         _startMinimizedCheckBox.Location =
-            new System.Drawing.Point(43, 348);
+            new System.Drawing.Point(
+                43,
+                348
+            );
 
         _startMinimizedCheckBox.Name =
             "_startMinimizedCheckBox";
@@ -811,7 +998,10 @@ partial class MainForm
             );
 
         _startWithWindowsCheckBox.Location =
-            new System.Drawing.Point(196, 348);
+            new System.Drawing.Point(
+                196,
+                348
+            );
 
         _startWithWindowsCheckBox.Name =
             "_startWithWindowsCheckBox";
@@ -836,26 +1026,72 @@ partial class MainForm
         // =====================================================
 
         _manageGameOverridesButton.BackColor =
-            System.Drawing.Color.White;
+            System.Drawing.Color.FromArgb(
+                226,
+                232,
+                240
+            );
 
-        _manageGameOverridesButton.FlatStyle =
-            System.Windows.Forms.FlatStyle.Flat;
+        _manageGameOverridesButton.CornerRadius =
+            8;
+
+        _manageGameOverridesButton.ContentSpacing =
+            5;
+
+        _manageGameOverridesButton.FlatAppearance.BorderColor =
+            System.Drawing.Color.FromArgb(
+                203,
+                213,
+                225
+            );
+
+        _manageGameOverridesButton.FlatAppearance.BorderSize =
+            1;
+
+        _manageGameOverridesButton.FlatAppearance.MouseOverBackColor =
+            System.Drawing.Color.FromArgb(
+                148,
+                163,
+                184
+            );
+
+        _manageGameOverridesButton.FlatAppearance.MouseDownBackColor =
+            System.Drawing.Color.FromArgb(
+                100,
+                116,
+                139
+            );
 
         _manageGameOverridesButton.ForeColor =
             System.Drawing.Color.FromArgb(
-                30,
-                41,
-                59
+                71,
+                85,
+                105
             );
 
+        _manageGameOverridesButton.HoverForeColor =
+            System.Drawing.Color.White;
+
+        _manageGameOverridesButton.ImageAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
         _manageGameOverridesButton.Location =
-            new System.Drawing.Point(28, 367);
+            new System.Drawing.Point(
+                28,
+                367
+            );
 
         _manageGameOverridesButton.Name =
             "_manageGameOverridesButton";
 
+        _manageGameOverridesButton.Padding =
+            System.Windows.Forms.Padding.Empty;
+
         _manageGameOverridesButton.Size =
-            new System.Drawing.Size(334, 34);
+            new System.Drawing.Size(
+                334,
+                34
+            );
 
         _manageGameOverridesButton.TabIndex =
             4;
@@ -863,14 +1099,8 @@ partial class MainForm
         _manageGameOverridesButton.Text =
             "Manage game";
 
-        _manageGameOverridesButton.ImageAlign =
-            System.Drawing.ContentAlignment.MiddleCenter;
-
         _manageGameOverridesButton.TextAlign =
             System.Drawing.ContentAlignment.MiddleCenter;
-
-        _manageGameOverridesButton.Padding =
-            System.Windows.Forms.Padding.Empty;
 
         _manageGameOverridesButton.TextImageRelation =
             System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -889,8 +1119,35 @@ partial class MainForm
                 255
             );
 
-        _refreshButton.FlatStyle =
-            System.Windows.Forms.FlatStyle.Flat;
+        _refreshButton.CornerRadius =
+            8;
+
+        _refreshButton.ContentSpacing =
+            5;
+
+        _refreshButton.FlatAppearance.BorderColor =
+            System.Drawing.Color.FromArgb(
+                170,
+                215,
+                255
+            );
+
+        _refreshButton.FlatAppearance.BorderSize =
+            1;
+
+        _refreshButton.FlatAppearance.MouseOverBackColor =
+            System.Drawing.Color.FromArgb(
+                24,
+                119,
+                242
+            );
+
+        _refreshButton.FlatAppearance.MouseDownBackColor =
+            System.Drawing.Color.FromArgb(
+                13,
+                92,
+                182
+            );
 
         _refreshButton.ForeColor =
             System.Drawing.Color.FromArgb(
@@ -899,14 +1156,29 @@ partial class MainForm
                 182
             );
 
+        _refreshButton.HoverForeColor =
+            System.Drawing.Color.White;
+
+        _refreshButton.ImageAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
         _refreshButton.Location =
-            new System.Drawing.Point(28, 407);
+            new System.Drawing.Point(
+                28,
+                407
+            );
 
         _refreshButton.Name =
             "_refreshButton";
 
+        _refreshButton.Padding =
+            System.Windows.Forms.Padding.Empty;
+
         _refreshButton.Size =
-            new System.Drawing.Size(191, 34);
+            new System.Drawing.Size(
+                191,
+                34
+            );
 
         _refreshButton.TabIndex =
             5;
@@ -914,14 +1186,8 @@ partial class MainForm
         _refreshButton.Text =
             "Refresh Presence";
 
-        _refreshButton.ImageAlign =
-            System.Drawing.ContentAlignment.MiddleCenter;
-
         _refreshButton.TextAlign =
             System.Drawing.ContentAlignment.MiddleCenter;
-
-        _refreshButton.Padding =
-            System.Windows.Forms.Padding.Empty;
 
         _refreshButton.TextImageRelation =
             System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -940,8 +1206,35 @@ partial class MainForm
                 241
             );
 
-        _clearButton.FlatStyle =
-            System.Windows.Forms.FlatStyle.Flat;
+        _clearButton.CornerRadius =
+            8;
+
+        _clearButton.ContentSpacing =
+            5;
+
+        _clearButton.FlatAppearance.BorderColor =
+            System.Drawing.Color.FromArgb(
+                246,
+                190,
+                200
+            );
+
+        _clearButton.FlatAppearance.BorderSize =
+            1;
+
+        _clearButton.FlatAppearance.MouseOverBackColor =
+            System.Drawing.Color.FromArgb(
+                220,
+                53,
+                69
+            );
+
+        _clearButton.FlatAppearance.MouseDownBackColor =
+            System.Drawing.Color.FromArgb(
+                190,
+                40,
+                55
+            );
 
         _clearButton.ForeColor =
             System.Drawing.Color.FromArgb(
@@ -950,14 +1243,29 @@ partial class MainForm
                 69
             );
 
+        _clearButton.HoverForeColor =
+            System.Drawing.Color.White;
+
+        _clearButton.ImageAlign =
+            System.Drawing.ContentAlignment.MiddleCenter;
+
         _clearButton.Location =
-            new System.Drawing.Point(229, 407);
+            new System.Drawing.Point(
+                229,
+                407
+            );
 
         _clearButton.Name =
             "_clearButton";
 
+        _clearButton.Padding =
+            System.Windows.Forms.Padding.Empty;
+
         _clearButton.Size =
-            new System.Drawing.Size(133, 34);
+            new System.Drawing.Size(
+                133,
+                34
+            );
 
         _clearButton.TabIndex =
             6;
@@ -965,14 +1273,8 @@ partial class MainForm
         _clearButton.Text =
             "Clear";
 
-        _clearButton.ImageAlign =
-            System.Drawing.ContentAlignment.MiddleCenter;
-
         _clearButton.TextAlign =
             System.Drawing.ContentAlignment.MiddleCenter;
-
-        _clearButton.Padding =
-            System.Windows.Forms.Padding.Empty;
 
         _clearButton.TextImageRelation =
             System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -988,7 +1290,7 @@ partial class MainForm
             System.Drawing.Color.Transparent;
 
         _statusIcon.Location =
-            new System.Drawing.Point(59, 444);
+            new System.Drawing.Point(59, 435);
 
         _statusIcon.Name =
             "_statusIcon";
@@ -1023,13 +1325,19 @@ partial class MainForm
             );
 
         _statusLabel.Location =
-            new System.Drawing.Point(82, 444);
+            new System.Drawing.Point(
+                82,
+                444
+            );
 
         _statusLabel.Name =
             "_statusLabel";
 
         _statusLabel.Size =
-            new System.Drawing.Size(242, 22);
+            new System.Drawing.Size(
+                242,
+                22
+            );
 
         _statusLabel.TabIndex =
             8;
@@ -1058,7 +1366,7 @@ partial class MainForm
             );
 
         ClientSize =
-            new System.Drawing.Size(392, 463);
+            new System.Drawing.Size(392, 456);
 
         Controls.Add(
             _informationPanel
@@ -1096,6 +1404,19 @@ partial class MainForm
             _statusLabel
         );
 
+        Font =
+            new System.Drawing.Font(
+                "Segoe UI",
+                9F
+            );
+
+        ForeColor =
+            System.Drawing.Color.FromArgb(
+                30,
+                41,
+                59
+            );
+
         FormBorderStyle =
             System.Windows.Forms.FormBorderStyle.FixedSingle;
 
@@ -1110,5 +1431,29 @@ partial class MainForm
 
         Text =
             "Custom Discord Presence";
+
+        ((System.ComponentModel.ISupportInitialize)
+            _projectIcon).EndInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _applicationIcon).EndInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _windowIcon).EndInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _suspectedGameIcon).EndInit();
+
+        ((System.ComponentModel.ISupportInitialize)
+            _statusIcon).EndInit();
+
+        _informationPanel.ResumeLayout(
+            false
+        );
+
+        _suspectedGamePanel.ResumeLayout(
+            false
+        );
+
     }
 }

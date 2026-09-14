@@ -18,10 +18,6 @@ internal static class UiAssets
             );
 
     // =========================================================
-    // Cache
-    // =========================================================
-
-    // =========================================================
     // Section icons
     // =========================================================
 
@@ -61,6 +57,15 @@ internal static class UiAssets
         );
     }
 
+    public static Image Ban(
+        int size)
+    {
+        return Get(
+            "ban.svg",
+            size
+        );
+    }
+
     // =========================================================
     // Action icons
     // =========================================================
@@ -83,14 +88,13 @@ internal static class UiAssets
         );
     }
 
-    public static Image RefreshHover(int size)
+    public static Image RefreshHover(
+        int size)
     {
-        return Get("refresh-hover.svg", size);
-    }
-
-    public static Image TrashHover(int size)
-    {
-        return Get("trash-hover.svg", size);
+        return Get(
+            "refresh-hover.svg",
+            size
+        );
     }
 
     public static Image Trash(
@@ -98,6 +102,33 @@ internal static class UiAssets
     {
         return Get(
             "trash.svg",
+            size
+        );
+    }
+
+    public static Image TrashHover(
+        int size)
+    {
+        return Get(
+            "trash-hover.svg",
+            size
+        );
+    }
+
+    public static Image TrashOutline(
+        int size)
+    {
+        return Get(
+            "trash-outline.svg",
+            size
+        );
+    }
+
+    public static Image TrashOutlineHover(
+        int size)
+    {
+        return Get(
+            "trash-outline-hover.svg",
             size
         );
     }
@@ -141,9 +172,25 @@ internal static class UiAssets
         string fileName,
         int size)
     {
-        if (size <= 0) throw new ArgumentOutOfRangeException(nameof(size));
-        return AppCacheService.Shared.GetImage("svg:" + fileName + ":" + size,
-            () => RenderSvg(fileName, size));
+        if (size <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(size)
+            );
+        }
+
+        return AppCacheService.Shared.GetImage(
+            "svg:" +
+            fileName +
+            ":" +
+            size,
+
+            () =>
+                RenderSvg(
+                    fileName,
+                    size
+                )
+        );
     }
 
     // =========================================================
