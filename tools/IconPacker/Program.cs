@@ -5,6 +5,30 @@ using Svg.Skia;
 internal static class Program
 {
     // =========================================================
+    // Required icons
+    // =========================================================
+
+    private static readonly string[]
+        RequiredIcons =
+        [
+            "folder",
+            "app",
+            "window",
+            "gamepad",
+            "ban",
+            "settings",
+            "refresh",
+            "refresh-hover",
+            "trash",
+            "trash-hover",
+            "trash-outline",
+            "trash-outline-hover",
+            "info",
+            "check",
+            "warning"
+        ];
+
+    // =========================================================
     // Generated sizes
     // =========================================================
 
@@ -94,6 +118,10 @@ internal static class Program
                 );
             }
 
+            ValidateRequiredIcons(
+                svgFiles
+            );
+
             var icons =
                 new SortedDictionary<
                     string,
@@ -172,6 +200,53 @@ internal static class Program
 
             return 1;
         }
+    }
+
+    // =========================================================
+    // Validation
+    // =========================================================
+
+    private static void ValidateRequiredIcons(
+        IEnumerable<string> svgFiles)
+    {
+        var available =
+            svgFiles
+                .Select(
+                    Path.GetFileNameWithoutExtension
+                )
+                .ToHashSet(
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+        var missing =
+            RequiredIcons
+                .Where(
+                    iconName =>
+                        !available.Contains(
+                            iconName
+                        )
+                )
+                .ToArray();
+
+        if (
+            missing.Length ==
+            0
+        )
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "Missing SVG source icons: " +
+            string.Join(
+                ", ",
+                missing.Select(
+                    iconName =>
+                        iconName +
+                        ".svg"
+                )
+            )
+        );
     }
 
     // =========================================================
