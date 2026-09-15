@@ -65,6 +65,9 @@ internal sealed class PresenceController : IDisposable
     private bool
         _isGameOverrideActive;
 
+    private string?
+        _activeGameProcessName;
+
     // =========================================================
     // Suspected games
     // =========================================================
@@ -169,6 +172,8 @@ internal sealed class PresenceController : IDisposable
     public void Tick()
     {
         _discordPresence.RunCallbacks();
+
+        RestoreIfActiveGameExited();
 
         HandleGameDetection();
 
@@ -424,6 +429,14 @@ internal sealed class PresenceController : IDisposable
                 null;
         }
 
+        if (!string.IsNullOrWhiteSpace(
+            result.ProcessName
+        ))
+        {
+            _activeGameProcessName =
+                result.ProcessName;
+        }
+
         if (_isGameOverrideActive)
         {
             return;
@@ -515,6 +528,55 @@ internal sealed class PresenceController : IDisposable
         );
     }
 
+    private void RestoreIfActiveGameExited()
+    {
+        if (!_isGameOverrideActive)
+        {
+            return;
+        }
+
+        var processName =
+            _activeGameProcessName;
+
+        if (string.IsNullOrWhiteSpace(
+            processName
+        ))
+        {
+            return;
+        }
+
+        Process[] processes;
+
+        try
+        {
+            processes =
+                Process.GetProcessesByName(
+                    processName
+                );
+        }
+        catch
+        {
+            return;
+        }
+
+        try
+        {
+            if (processes.Length > 0)
+            {
+                return;
+            }
+        }
+        finally
+        {
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+        }
+
+        RestoreFromGameOverrideIfNeeded();
+    }
+
     private void RestoreFromGameOverrideIfNeeded()
     {
         if (!_isGameOverrideActive)
@@ -524,6 +586,9 @@ internal sealed class PresenceController : IDisposable
 
         _isGameOverrideActive =
             false;
+
+        _activeGameProcessName =
+            null;
 
         var reinitialized =
             _discordPresence.Reinitialize();
