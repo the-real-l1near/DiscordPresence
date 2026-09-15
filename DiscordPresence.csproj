@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -20,9 +20,9 @@
       Automatic Discord Rich Presence for supported desktop applications.
     </Description>
 
-  <Company>Aurelia Team</Company>
-  <Authors>l1near</Authors>
-  <Copyright>Copyright © 2026 Aurelia Team</Copyright>
+    <Company>Aurelia Team</Company>
+    <Authors>l1near</Authors>
+    <Copyright>Copyright © 2026 Aurelia Team</Copyright>
 
     <!-- Version -->
     <Version>1.2.0</Version>
@@ -55,15 +55,27 @@
     <None Include="native\sdk\bin\discord_partner_sdk.dll" Link="discord_partner_sdk.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Keep the development-only icon packer out of the WinForms assembly. -->
   <ItemGroup>
-    <PackageReference Include="Svg.Skia" Version="5.2.3" />
+    <Compile Remove="tools\**\*.cs" />
   </ItemGroup>
 
+  <!-- Generated PNG atlas is embedded directly in DiscordPresence.exe. -->
   <ItemGroup>
-    <Content Include="Assets\Icons\*.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <None Remove="Assets\Generated\embedded-icons.json" />
+    <EmbeddedResource Include="Assets\Generated\embedded-icons.json" LogicalName="DiscordPresence.EmbeddedIcons.json" />
   </ItemGroup>
+
+  <!--
+    Svg.Skia is used only by tools/IconPacker at build time.
+    The published application no longer carries Svg.Skia/SkiaSharp.
+  -->
+  <Target
+    Name="GenerateEmbeddedIcons"
+    BeforeTargets="PrepareResources"
+    Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\Assets\Icons')">
+
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\tools\IconPacker\IconPacker.csproj&quot; --configuration Release --no-launch-profile -- &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
 
 </Project>
