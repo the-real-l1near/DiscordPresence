@@ -89,13 +89,13 @@ jobs:
       # Publish smoke test
       # -------------------------------------------------------
 
-      - name: Publish smoke test
+      - name: Publish framework-dependent smoke test
         run: >
           dotnet publish
           .\DiscordPresence.csproj
           -c Release
           -r win-x64
-          --self-contained true
+          --self-contained false
           --no-restore
 
       # -------------------------------------------------------
@@ -124,4 +124,22 @@ jobs:
               }
           }
 
-          Write-Host "Publish output validated successfully."
+          $forbiddenRuntimeFiles =
+              @(
+                  "hostfxr.dll"
+                  "hostpolicy.dll"
+                  "coreclr.dll"
+                  "SkiaSharp.dll"
+                  "Svg.Skia.dll"
+              )
+
+          foreach ($file in $forbiddenRuntimeFiles) {
+              $path =
+                  Join-Path $publishDir $file
+
+              if (Test-Path $path) {
+                  throw "Unexpected runtime dependency in framework-dependent publish: $file"
+              }
+          }
+
+          Write-Host "Framework-dependent publish output validated successfully."
