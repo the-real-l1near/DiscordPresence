@@ -3,7 +3,7 @@
 
 #define MyAppName "Discord Presence"
 #define MyAppExeName "DiscordPresence.exe"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.3.1"
 #define MyAppId "DiscordPresence.App"
 #define DotNetDesktopRuntimeUrl "https://aka.ms/dotnet/10.0/windowsdesktop-runtime-win-x64.exe"
 #define DotNetDesktopRuntimeInstaller "windowsdesktop-runtime-10-x64.exe"
@@ -44,13 +44,20 @@ CloseApplications=yes
 CloseApplicationsFilter=DiscordPresence.exe,DiscordSocialBridge.dll,discord_partner_sdk.dll
 RestartApplications=no
 
-VersionInfoVersion=1.3.0.0
+VersionInfoVersion=1.3.1.0
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription=Automatic Discord Rich Presence for supported desktop applications.
 VersionInfoProductVersion={#MyAppVersion}
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+
+; Upgrading from older self-contained releases can leave private .NET runtime files
+; beside DiscordPresence.exe. Clear the entire application directory first whenever
+; an existing Discord Presence installation is detected, then install a clean package.
+; User settings are stored outside {app}, under %LOCALAPPDATA%\DiscordPresence.
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\*"; Check: ShouldCleanInstallDirectory
 
 [Files]
 Source: "..\bin\Release\net10.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -65,6 +72,16 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: no
 [Code]
 var
   DownloadPage: TDownloadWizardPage;
+
+function ShouldCleanInstallDirectory: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\{#MyAppExeName}'));
+
+  if Result then
+  begin
+    Log('Existing Discord Presence installation detected. Clearing application directory before install.');
+  end;
+end;
 
 function HasDotNet10DesktopRuntimeInRegistry: Boolean;
 var
