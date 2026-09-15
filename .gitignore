@@ -1,20 +1,4 @@
-# Build output
-bin/
-obj/
-
-# Visual Studio
-.vs/
-*.user
-*.suo
-
-# VS Code local settings
-.vscode/
-
-# OS
-Thumbs.db
-Desktop.ini
-
-# Build output
+# .NET build output
 bin/
 obj/
 
@@ -26,29 +10,28 @@ obj/
 # VS Code
 .vscode/
 
-# Installer build output
+# Installer output
 dist/
 installer/Output/
-
-# Inno Setup temporary / generated files
 *.iss.tmp
+
+# Generated icon atlas
+/embedded-icons.json
+
+# Native build output
+native/DiscordSocialBridge/build/
+
+# Discord Social SDK
+native/sdk/*
+!native/sdk/include/
+!native/sdk/include/cdiscord.h
+!native/sdk/include/discordpp.h
+!native/sdk/lib/
+!native/sdk/lib/discord_partner_sdk.lib
+!native/sdk/bin/
+!native/sdk/bin/discord_partner_sdk.dll
 
 # OS
 Thumbs.db
 Desktop.ini
-
-# Discord Social SDK
-native/sdk/*
-
-!native/sdk/include/
-!native/sdk/include/cdiscord.h
-!native/sdk/include/discordpp.h
-
-!native/sdk/lib/
-!native/sdk/lib/discord_partner_sdk.lib
-
-!native/sdk/bin/
-!native/sdk/bin/discord_partner_sdk.dll
-
-# Native build output
-native/DiscordSocialBridge/build/
+.DS_Store
