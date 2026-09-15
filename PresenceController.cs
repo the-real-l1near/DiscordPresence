@@ -389,13 +389,21 @@ internal sealed class PresenceController : IDisposable
                 HandleSuspectedGame(
                     result
                 );
-
-                RestoreFromGameOverrideIfNeeded();
                 break;
 
             case GameDetectionKind.NotGame:
             default:
-                RestoreFromGameOverrideIfNeeded();
+                if (
+                    !string.IsNullOrWhiteSpace(
+                        result.ProcessName
+                    ) &&
+                    _supportedApps.IsSupportedProcess(
+                        result.ProcessName
+                    )
+                )
+                {
+                    RestoreFromGameOverrideIfNeeded();
+                }
                 break;
         }
     }
