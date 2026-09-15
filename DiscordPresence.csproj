@@ -62,8 +62,8 @@
 
   <!-- Generated PNG atlas is embedded directly in DiscordPresence.exe. -->
   <ItemGroup>
-    <None Remove="Assets\Generated\embedded-icons.json" />
-    <EmbeddedResource Include="Assets\Generated\embedded-icons.json" LogicalName="DiscordPresence.EmbeddedIcons.json" />
+    <None Remove="embedded-icons.json" />
+    <EmbeddedResource Include="embedded-icons.json" LogicalName="DiscordPresence.EmbeddedIcons.json" />
   </ItemGroup>
 
   <!--

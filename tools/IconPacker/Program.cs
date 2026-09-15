@@ -72,16 +72,9 @@ internal static class Program
                     "Icons"
                 );
 
-            var outputDirectory =
-                Path.Combine(
-                    repositoryRoot,
-                    "Assets",
-                    "Generated"
-                );
-
             var outputPath =
                 Path.Combine(
-                    outputDirectory,
+                    repositoryRoot,
                     "embedded-icons.json"
                 );
 
@@ -172,10 +165,6 @@ internal static class Program
                     }
                 ) +
                 Environment.NewLine;
-
-            Directory.CreateDirectory(
-                outputDirectory
-            );
 
             WriteIfChanged(
                 outputPath,
