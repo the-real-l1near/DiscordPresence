@@ -3,7 +3,7 @@
 
 #define MyAppName "Discord Presence"
 #define MyAppExeName "DiscordPresence.exe"
-#define MyAppVersion "1.3.1"
+#define MyAppVersion "1.3.2"
 #define MyAppId "DiscordPresence.App"
 #define DotNetDesktopRuntimeUrl "https://aka.ms/dotnet/10.0/windowsdesktop-runtime-win-x64.exe"
 #define DotNetDesktopRuntimeInstaller "windowsdesktop-runtime-10-x64.exe"
@@ -44,7 +44,7 @@ CloseApplications=yes
 CloseApplicationsFilter=DiscordPresence.exe,DiscordSocialBridge.dll,discord_partner_sdk.dll
 RestartApplications=no
 
-VersionInfoVersion=1.3.1.0
+VersionInfoVersion=1.3.2.0
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription=Automatic Discord Rich Presence for supported desktop applications.
 VersionInfoProductVersion={#MyAppVersion}
