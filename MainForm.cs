@@ -151,9 +151,7 @@ public sealed partial class MainForm : Form
             };
 
         var openMenuItem =
-            new ToolStripMenuItem(
-                "Open"
-            );
+            new ToolStripMenuItem("Open");
 
         var clearPresenceMenuItem =
             new ToolStripMenuItem(
@@ -161,13 +159,7 @@ public sealed partial class MainForm : Form
             );
 
         var exitMenuItem =
-            new ToolStripMenuItem(
-                "Exit"
-            );
-
-        // -----------------------------------------------------
-        // Tray events
-        // -----------------------------------------------------
+            new ToolStripMenuItem("Exit");
 
         _traySuspectYesItem.Click += (_, _) =>
         {
@@ -201,10 +193,6 @@ public sealed partial class MainForm : Form
         {
             ExitApplication();
         };
-
-        // -----------------------------------------------------
-        // Tray items
-        // -----------------------------------------------------
 
         _trayMenu.Items.Add(
             _traySuspectQuestionItem
@@ -242,10 +230,6 @@ public sealed partial class MainForm : Form
             exitMenuItem
         );
 
-        // -----------------------------------------------------
-        // Tray icon
-        // -----------------------------------------------------
-
         _trayIcon =
             new NotifyIcon
             {
@@ -272,8 +256,7 @@ public sealed partial class MainForm : Form
         // Controller initialize
         // -----------------------------------------------------
 
-        _presenceController
-            .Initialize();
+        _presenceController.Initialize();
 
         UpdatePresenceUi();
 
@@ -284,14 +267,12 @@ public sealed partial class MainForm : Form
         _detectionTimer =
             new System.Windows.Forms.Timer
             {
-                Interval =
-                    1000
+                Interval = 1000
             };
 
         _detectionTimer.Tick += (_, _) =>
         {
-            _presenceController
-                .Tick();
+            _presenceController.Tick();
 
             UpdatePresenceUi();
 
@@ -312,8 +293,7 @@ public sealed partial class MainForm : Form
             if (_settings.StartMinimized)
             {
                 BeginInvoke(
-                    () =>
-                        HideToTray()
+                    () => HideToTray()
                 );
             }
         };
@@ -358,29 +338,19 @@ public sealed partial class MainForm : Form
             );
 
         _manageGameOverridesButton.Image =
-            UiAssets.Settings(
-                24
-            );
+            UiAssets.Settings(24);
 
         _refreshButton.Image =
-            UiAssets.Refresh(
-                20
-            );
+            UiAssets.Refresh(20);
 
         _clearButton.Image =
-            UiAssets.Trash(
-                20
-            );
+            UiAssets.Trash(20);
 
         _refreshButton.HoverImage =
-            UiAssets.RefreshHover(
-                20
-            );
+            UiAssets.RefreshHover(20);
 
         _clearButton.HoverImage =
-            UiAssets.TrashHover(
-                20
-            );
+            UiAssets.TrashHover(20);
 
         _statusIcon.Image =
             UiAssets.Info(
@@ -397,17 +367,6 @@ public sealed partial class MainForm : Form
 
     private void WireEvents()
     {
-        Resize += (_, _) =>
-        {
-            if (
-                WindowState ==
-                FormWindowState.Normal
-            )
-            {
-                UpdateSuspectedGameUi();
-            }
-        };
-
         _suspectedGameYesButton.Click += (_, _) =>
         {
             ResolveSuspectedGameYes();
@@ -473,11 +432,22 @@ public sealed partial class MainForm : Form
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    $"Could not update Windows startup:\n\n{ex.Message}",
-                    "Discord Presence",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
+                using var dialog =
+                    new AppDialog(
+                        "Windows startup error",
+                        "Could not update Windows startup",
+                        ex.Message,
+                        AppDialogTone.Danger,
+
+                        new AppDialogAction(
+                            "OK",
+                            DialogResult.OK,
+                            AppDialogButtonKind.Primary
+                        )
+                    );
+
+                dialog.ShowDialog(
+                    this
                 );
 
                 _startWithWindowsCheckBox.Checked =
@@ -773,18 +743,6 @@ public sealed partial class MainForm : Form
         // Automatic vertical layout
         // -----------------------------------------------------
 
-        /*
-         * Minimized window có client area khác.
-         * Không dùng size đó để overwrite restored size.
-         */
-        if (
-            WindowState !=
-            FormWindowState.Normal
-        )
-        {
-            return;
-        }
-
         var settingsTop =
             hasSuspect
                 ? _suspectedGamePanel.Bottom + 12
@@ -849,20 +807,11 @@ public sealed partial class MainForm : Form
                 _statusLabel.Bottom
             );
 
-        var desiredHeight =
-            contentBottom + 18;
-
-        if (
-            ClientSize.Height !=
-            desiredHeight
-        )
-        {
-            ClientSize =
-                new Size(
-                    ClientSize.Width,
-                    desiredHeight
-                );
-        }
+        ClientSize =
+            new Size(
+                ClientSize.Width,
+                contentBottom + 18
+            );
     }
 
     // =========================================================

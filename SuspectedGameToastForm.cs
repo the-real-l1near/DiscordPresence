@@ -1,7 +1,23 @@
+using System.Drawing.Drawing2D;
+
 namespace DiscordPresence;
 
 internal sealed class SuspectedGameToastForm : Form
 {
+    // =========================================================
+    // Constants
+    // =========================================================
+
+    private const int
+        CornerRadius = 12;
+
+    private const int
+        CloseDelayMilliseconds = 8000;
+
+    // =========================================================
+    // State
+    // =========================================================
+
     private readonly System.Windows.Forms.Timer
         _closeTimer;
 
@@ -13,6 +29,10 @@ internal sealed class SuspectedGameToastForm : Form
 
     private readonly Action
         _onLater;
+
+    // =========================================================
+    // Constructor
+    // =========================================================
 
     public SuspectedGameToastForm(
         SuspectedGame suspect,
@@ -29,263 +49,541 @@ internal sealed class SuspectedGameToastForm : Form
         _onLater =
             onLater;
 
-        // =====================================================
-        // Window
-        // =====================================================
-
-        FormBorderStyle =
-            FormBorderStyle.None;
-
-        ShowInTaskbar =
-            false;
-
-        TopMost =
-            true;
-
-        StartPosition =
-            FormStartPosition.Manual;
-
-        Width =
-            360;
-
-        Height =
-            150;
-
-        BackColor =
-            SystemColors.Window;
-
-        // =====================================================
-        // Title
-        // =====================================================
-
-        var titleLabel =
-            new Label
-            {
-                Text =
-                    "Suspected game detected",
-
-                Left =
-                    14,
-
-                Top =
-                    12,
-
-                Width =
-                    330,
-
-                Height =
-                    22,
-
-                Font =
-                    new Font(
-                        Font,
-                        FontStyle.Bold
-                    )
-            };
-
-        // =====================================================
-        // Process
-        // =====================================================
-
-        var processLabel =
-            new Label
-            {
-                Text =
-                    $"Is \"{suspect.ProcessName}.exe\" a game?",
-
-                Left =
-                    14,
-
-                Top =
-                    38,
-
-                Width =
-                    330,
-
-                Height =
-                    22,
-
-                AutoEllipsis =
-                    true
-            };
-
-        // =====================================================
-        // Window title
-        // =====================================================
-
-        var windowLabel =
-            new Label
-            {
-                Text =
-                    string.IsNullOrWhiteSpace(
-                        suspect.WindowTitle
-                    )
-                        ? "Window: -"
-                        : $"Window: {suspect.WindowTitle}",
-
-                Left =
-                    14,
-
-                Top =
-                    62,
-
-                Width =
-                    330,
-
-                Height =
-                    22,
-
-                ForeColor =
-                    SystemColors.GrayText,
-
-                AutoEllipsis =
-                    true
-            };
-
-        // =====================================================
-        // Buttons
-        // =====================================================
-
-        var yesButton =
-            new Button
-            {
-                Text =
-                    "Yes",
-
-                Left =
-                    14,
-
-                Top =
-                    100,
-
-                Width =
-                    90,
-
-                Height =
-                    30
-            };
-
-        var noButton =
-            new Button
-            {
-                Text =
-                    "No",
-
-                Left =
-                    114,
-
-                Top =
-                    100,
-
-                Width =
-                    90,
-
-                Height =
-                    30
-            };
-
-        var laterButton =
-            new Button
-            {
-                Text =
-                    "Later",
-
-                Left =
-                    214,
-
-                Top =
-                    100,
-
-                Width =
-                    90,
-
-                Height =
-                    30
-            };
-
-        // =====================================================
-        // Auto close
-        // =====================================================
-
         _closeTimer =
             new System.Windows.Forms.Timer
             {
                 Interval =
-                    8000
+                    CloseDelayMilliseconds
             };
 
-        _closeTimer.Tick += (_, _) =>
+        SuspendLayout();
+
+        try
         {
-            _closeTimer.Stop();
+            // =================================================
+            // Window
+            // =================================================
 
-            Close();
-        };
+            FormBorderStyle =
+                FormBorderStyle.None;
 
-        Shown += (_, _) =>
+            ShowInTaskbar =
+                false;
+
+            TopMost =
+                true;
+
+            StartPosition =
+                FormStartPosition.Manual;
+
+            ClientSize =
+                new Size(
+                    410,
+                    188
+                );
+
+            AutoScaleMode =
+                AutoScaleMode.Dpi;
+
+            Font =
+                new Font(
+                    "Segoe UI",
+                    9F,
+                    FontStyle.Regular,
+                    GraphicsUnit.Point
+                );
+
+            BackColor =
+                UiTheme.Background;
+
+            ForeColor =
+                UiTheme.TextPrimary;
+
+            // =================================================
+            // Card
+            // =================================================
+
+            var card =
+                new RoundedPanel
+                {
+                    Dock =
+                        DockStyle.Fill,
+
+                    BackColor =
+                        Color.White,
+
+                    BorderColor =
+                        UiTheme.Border,
+
+                    BorderSize =
+                        1,
+
+                    CornerRadius =
+                        CornerRadius
+                };
+
+            // =================================================
+            // Game icon
+            // =================================================
+
+            var iconTile =
+                new RoundedPanel
+                {
+                    BackColor =
+                        UiTheme.AccentSoft,
+
+                    BorderSize =
+                        0,
+
+                    CornerRadius =
+                        9,
+
+                    Location =
+                        new Point(
+                            16,
+                            16
+                        ),
+
+                    Size =
+                        new Size(
+                            44,
+                            44
+                        )
+                };
+
+            var gameIcon =
+                new PictureBox
+                {
+                    BackColor =
+                        Color.Transparent,
+
+                    Image =
+                        UiAssets.Gamepad(
+                            30
+                        ),
+
+                    Location =
+                        new Point(
+                            7,
+                            7
+                        ),
+
+                    Size =
+                        new Size(
+                            30,
+                            30
+                        ),
+
+                    SizeMode =
+                        PictureBoxSizeMode.Zoom,
+
+                    TabStop =
+                        false
+                };
+
+            iconTile.Controls.Add(
+                gameIcon
+            );
+
+            // =================================================
+            // Header
+            // =================================================
+
+            var titleLabel =
+                new Label
+                {
+                    AutoEllipsis =
+                        true,
+
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            10F,
+                            FontStyle.Bold,
+                            GraphicsUnit.Point
+                        ),
+
+                    ForeColor =
+                        UiTheme.TextPrimary,
+
+                    Location =
+                        new Point(
+                            72,
+                            17
+                        ),
+
+                    Size =
+                        new Size(
+                            318,
+                            22
+                        ),
+
+                    Text =
+                        "Suspected game detected"
+                };
+
+            var subtitleLabel =
+                new Label
+                {
+                    AutoEllipsis =
+                        true,
+
+                    ForeColor =
+                        UiTheme.TextSecondary,
+
+                    Location =
+                        new Point(
+                            72,
+                            40
+                        ),
+
+                    Size =
+                        new Size(
+                            318,
+                            20
+                        ),
+
+                    Text =
+                        "Discord Presence needs your input."
+                };
+
+            // =================================================
+            // Process
+            // =================================================
+
+            var processLabel =
+                new Label
+                {
+                    AutoEllipsis =
+                        true,
+
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            9F,
+                            FontStyle.Bold,
+                            GraphicsUnit.Point
+                        ),
+
+                    ForeColor =
+                        UiTheme.TextPrimary,
+
+                    Location =
+                        new Point(
+                            16,
+                            72
+                        ),
+
+                    Size =
+                        new Size(
+                            378,
+                            20
+                        ),
+
+                    Text =
+                        $"Is \"{suspect.ProcessName}.exe\" a game?"
+                };
+
+            var windowLabel =
+                new Label
+                {
+                    AutoEllipsis =
+                        true,
+
+                    ForeColor =
+                        UiTheme.TextSecondary,
+
+                    Location =
+                        new Point(
+                            16,
+                            94
+                        ),
+
+                    Size =
+                        new Size(
+                            378,
+                            20
+                        ),
+
+                    Text =
+                        string.IsNullOrWhiteSpace(
+                            suspect.WindowTitle
+                        )
+                            ? "Window: -"
+                            : $"Window: {suspect.WindowTitle}"
+                };
+
+            // =================================================
+            // Divider
+            // =================================================
+
+            var divider =
+                new Panel
+                {
+                    BackColor =
+                        Color.FromArgb(
+                            226,
+                            232,
+                            240
+                        ),
+
+                    Location =
+                        new Point(
+                            16,
+                            122
+                        ),
+
+                    Size =
+                        new Size(
+                            378,
+                            1
+                        )
+                };
+
+            // =================================================
+            // Buttons
+            // =================================================
+
+            var yesButton =
+                CreateButton(
+                    "Yes",
+                    primary: true
+                );
+
+            yesButton.Location =
+                new Point(
+                    16,
+                    136
+                );
+
+            yesButton.Size =
+                new Size(
+                    118,
+                    34
+                );
+
+            var noButton =
+                CreateButton(
+                    "No",
+                    primary: false
+                );
+
+            noButton.Location =
+                new Point(
+                    146,
+                    136
+                );
+
+            noButton.Size =
+                new Size(
+                    118,
+                    34
+                );
+
+            var laterButton =
+                CreateButton(
+                    "Later",
+                    primary: false
+                );
+
+            laterButton.Location =
+                new Point(
+                    276,
+                    136
+                );
+
+            laterButton.Size =
+                new Size(
+                    118,
+                    34
+                );
+
+            // =================================================
+            // Events
+            // =================================================
+
+            yesButton.Click += (_, _) =>
+            {
+                _closeTimer.Stop();
+
+                _onYes();
+
+                Close();
+            };
+
+            noButton.Click += (_, _) =>
+            {
+                _closeTimer.Stop();
+
+                _onNo();
+
+                Close();
+            };
+
+            laterButton.Click += (_, _) =>
+            {
+                _closeTimer.Stop();
+
+                _onLater();
+
+                Close();
+            };
+
+            // =================================================
+            // Controls
+            // =================================================
+
+            card.Controls.Add(
+                iconTile
+            );
+
+            card.Controls.Add(
+                titleLabel
+            );
+
+            card.Controls.Add(
+                subtitleLabel
+            );
+
+            card.Controls.Add(
+                processLabel
+            );
+
+            card.Controls.Add(
+                windowLabel
+            );
+
+            card.Controls.Add(
+                divider
+            );
+
+            card.Controls.Add(
+                yesButton
+            );
+
+            card.Controls.Add(
+                noButton
+            );
+
+            card.Controls.Add(
+                laterButton
+            );
+
+            Controls.Add(
+                card
+            );
+
+            // =================================================
+            // Auto close
+            // =================================================
+
+            _closeTimer.Tick += (_, _) =>
+            {
+                _closeTimer.Stop();
+
+                Close();
+            };
+
+            Shown += (_, _) =>
+            {
+                PositionToast();
+
+                ApplyRoundedRegion();
+
+                _closeTimer.Start();
+            };
+
+            SizeChanged += (_, _) =>
+            {
+                ApplyRoundedRegion();
+            };
+        }
+        finally
         {
-            PositionToast();
+            ResumeLayout(
+                false
+            );
+        }
+    }
 
-            _closeTimer.Start();
-        };
+    // =========================================================
+    // Buttons
+    // =========================================================
 
-        // =====================================================
-        // Button events
-        // =====================================================
+    private static RoundedButton CreateButton(
+        string text,
+        bool primary)
+    {
+        var button =
+            new RoundedButton
+            {
+                Text =
+                    text,
 
-        yesButton.Click += (_, _) =>
+                CornerRadius =
+                    8,
+
+                ContentSpacing =
+                    5,
+
+                FlatStyle =
+                    FlatStyle.Flat,
+
+                UseVisualStyleBackColor =
+                    false,
+
+                Cursor =
+                    Cursors.Hand
+            };
+
+        if (primary)
         {
-            _closeTimer.Stop();
+            button.BackColor =
+                UiTheme.Accent;
 
-            _onYes();
+            button.ForeColor =
+                Color.White;
 
-            Close();
-        };
+            button.HoverForeColor =
+                Color.White;
 
-        noButton.Click += (_, _) =>
-        {
-            _closeTimer.Stop();
+            button.FlatAppearance.BorderColor =
+                UiTheme.Accent;
 
-            _onNo();
+            button.FlatAppearance.BorderSize =
+                1;
 
-            Close();
-        };
+            button.FlatAppearance.MouseOverBackColor =
+                UiTheme.AccentHover;
 
-        laterButton.Click += (_, _) =>
-        {
-            _closeTimer.Stop();
+            button.FlatAppearance.MouseDownBackColor =
+                UiTheme.AccentHover;
 
-            _onLater();
+            return button;
+        }
 
-            Close();
-        };
+        button.BackColor =
+            Color.White;
 
-        // =====================================================
-        // Controls
-        // =====================================================
+        button.ForeColor =
+            UiTheme.TextPrimary;
 
-        Controls.Add(
-            titleLabel
-        );
+        button.HoverForeColor =
+            UiTheme.TextPrimary;
 
-        Controls.Add(
-            processLabel
-        );
+        button.FlatAppearance.BorderColor =
+            UiTheme.Border;
 
-        Controls.Add(
-            windowLabel
-        );
+        button.FlatAppearance.BorderSize =
+            1;
 
-        Controls.Add(
-            yesButton
-        );
+        button.FlatAppearance.MouseOverBackColor =
+            UiTheme.Card;
 
-        Controls.Add(
-            noButton
-        );
+        button.FlatAppearance.MouseDownBackColor =
+            UiTheme.AccentSoft;
 
-        Controls.Add(
-            laterButton
-        );
+        return button;
     }
 
     // =========================================================
@@ -295,8 +593,10 @@ internal sealed class SuspectedGameToastForm : Form
     private void PositionToast()
     {
         var workingArea =
-            Screen.PrimaryScreen?.WorkingArea
-            ?? Screen.FromControl(this).WorkingArea;
+            Screen.PrimaryScreen?.WorkingArea ??
+            Screen.FromControl(
+                this
+            ).WorkingArea;
 
         const int margin =
             16;
@@ -310,6 +610,123 @@ internal sealed class SuspectedGameToastForm : Form
             workingArea.Bottom -
             Height -
             margin;
+    }
+
+    // =========================================================
+    // Rounded window
+    // =========================================================
+
+    private void ApplyRoundedRegion()
+    {
+        if (
+            ClientSize.Width <= 0 ||
+            ClientSize.Height <= 0
+        )
+        {
+            return;
+        }
+
+        using var path =
+            CreateRoundedRectanglePath(
+                new RectangleF(
+                    0,
+                    0,
+                    ClientSize.Width,
+                    ClientSize.Height
+                ),
+                CornerRadius
+            );
+
+        var newRegion =
+            new Region(
+                path
+            );
+
+        var oldRegion =
+            Region;
+
+        Region =
+            newRegion;
+
+        oldRegion?.Dispose();
+    }
+
+    private static GraphicsPath
+        CreateRoundedRectanglePath(
+            RectangleF bounds,
+            int radius)
+    {
+        var path =
+            new GraphicsPath();
+
+        var diameter =
+            radius *
+            2F;
+
+        path.AddArc(
+            bounds.Left,
+            bounds.Top,
+            diameter,
+            diameter,
+            180F,
+            90F
+        );
+
+        path.AddArc(
+            bounds.Right -
+            diameter,
+            bounds.Top,
+            diameter,
+            diameter,
+            270F,
+            90F
+        );
+
+        path.AddArc(
+            bounds.Right -
+            diameter,
+            bounds.Bottom -
+            diameter,
+            diameter,
+            diameter,
+            0F,
+            90F
+        );
+
+        path.AddArc(
+            bounds.Left,
+            bounds.Bottom -
+            diameter,
+            diameter,
+            diameter,
+            90F,
+            90F
+        );
+
+        path.CloseFigure();
+
+        return path;
+    }
+
+    // =========================================================
+    // Shadow
+    // =========================================================
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            const int CsDropShadow =
+                0x00020000;
+
+            var createParams =
+                base.CreateParams;
+
+            createParams.ClassStyle |=
+                CsDropShadow;
+
+            return createParams;
+        }
     }
 
     // =========================================================

@@ -996,6 +996,42 @@ internal sealed partial class GameOverridesForm : Form
             return;
         }
 
+        var processText =
+            selected.Length ==
+            1
+                ? $"\"{selected[0]}.exe\" will return to automatic game detection."
+                : $"{selected.Length} selected processes will return to automatic game detection.";
+
+        using var dialog =
+            new AppDialog(
+                "Remove game override",
+                "Remove from Always a game?",
+                processText,
+                AppDialogTone.Warning,
+
+                new AppDialogAction(
+                    "Cancel",
+                    DialogResult.Cancel,
+                    AppDialogButtonKind.Secondary
+                ),
+
+                new AppDialogAction(
+                    "Remove",
+                    DialogResult.Yes,
+                    AppDialogButtonKind.Danger
+                )
+            );
+
+        if (
+            dialog.ShowDialog(
+                this
+            ) !=
+            DialogResult.Yes
+        )
+        {
+            return;
+        }
+
         foreach (
             var processName
             in selected
@@ -1034,6 +1070,42 @@ internal sealed partial class GameOverridesForm : Form
             return;
         }
 
+        var processText =
+            selected.Length ==
+            1
+                ? $"\"{selected[0]}.exe\" will return to automatic game detection."
+                : $"{selected.Length} selected processes will return to automatic game detection.";
+
+        using var dialog =
+            new AppDialog(
+                "Remove game override",
+                "Remove from Never a game?",
+                processText,
+                AppDialogTone.Warning,
+
+                new AppDialogAction(
+                    "Cancel",
+                    DialogResult.Cancel,
+                    AppDialogButtonKind.Secondary
+                ),
+
+                new AppDialogAction(
+                    "Remove",
+                    DialogResult.Yes,
+                    AppDialogButtonKind.Danger
+                )
+            );
+
+        if (
+            dialog.ShowDialog(
+                this
+            ) !=
+            DialogResult.Yes
+        )
+        {
+            return;
+        }
+
         foreach (
             var processName
             in selected
@@ -1058,13 +1130,38 @@ internal sealed partial class GameOverridesForm : Form
 
     private void ClearAllOverrides()
     {
-        if (
-            MessageBox.Show(
-                this,
+        var overrideCount =
+            _includedList.Items.Count +
+            _excludedList.Items.Count;
+
+        if (overrideCount <= 0)
+        {
+            return;
+        }
+
+        using var dialog =
+            new AppDialog(
+                "Clear game overrides",
                 "Clear all game overrides?",
-                "Discord Presence",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question
+                $"This will remove all {overrideCount} manual game rules and return them to automatic detection.",
+                AppDialogTone.Danger,
+
+                new AppDialogAction(
+                    "Cancel",
+                    DialogResult.Cancel,
+                    AppDialogButtonKind.Secondary
+                ),
+
+                new AppDialogAction(
+                    "Clear all",
+                    DialogResult.Yes,
+                    AppDialogButtonKind.Danger
+                )
+            );
+
+        if (
+            dialog.ShowDialog(
+                this
             ) !=
             DialogResult.Yes
         )
