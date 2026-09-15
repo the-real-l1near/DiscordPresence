@@ -50,9 +50,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="native\DiscordSocialBridge\build\Release\DiscordSocialBridge.dll" Link="DiscordSocialBridge.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="native\DiscordSocialBridge\build\Release\DiscordSocialBridge.dll"
+          Link="DiscordSocialBridge.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
 
-    <None Include="native\sdk\bin\discord_partner_sdk.dll" Link="discord_partner_sdk.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="native\sdk\bin\discord_partner_sdk.dll"
+          Link="discord_partner_sdk.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Keep the development-only icon packer out of the WinForms assembly. -->
@@ -63,7 +69,8 @@
   <!-- Generated PNG atlas is embedded directly in DiscordPresence.exe. -->
   <ItemGroup>
     <None Remove="embedded-icons.json" />
-    <EmbeddedResource Include="embedded-icons.json" LogicalName="DiscordPresence.EmbeddedIcons.json" />
+    <EmbeddedResource Include="embedded-icons.json"
+                      LogicalName="DiscordPresence.EmbeddedIcons.json" />
   </ItemGroup>
 
   <!--
@@ -75,7 +82,8 @@
     BeforeTargets="PrepareResources"
     Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\Assets\Icons')">
 
-    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\tools\IconPacker\IconPacker.csproj&quot; --configuration Release --no-launch-profile -- &quot;$(MSBuildProjectDirectory)&quot;" />
+    <Exec
+      Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\tools\GenerateEmbeddedIcons.ps1&quot;" />
   </Target>
 
 </Project>

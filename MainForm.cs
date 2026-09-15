@@ -24,6 +24,19 @@ public sealed partial class MainForm : Form
         _settings;
 
     // =========================================================
+    // Window
+    // =========================================================
+
+    private readonly int
+        _normalClientWidth;
+
+    private int
+        _desiredClientHeight;
+
+    private bool
+        _isApplyingClientSize;
+
+    // =========================================================
     // Tray
     // =========================================================
 
@@ -64,6 +77,19 @@ public sealed partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
+
+        // -----------------------------------------------------
+        // Window
+        // -----------------------------------------------------
+
+        _normalClientWidth =
+            ClientSize.Width;
+
+        _desiredClientHeight =
+            ClientSize.Height;
+
+        Resize +=
+            MainForm_Resize;
 
         // -----------------------------------------------------
         // Settings
@@ -290,6 +316,8 @@ public sealed partial class MainForm : Form
 
         Shown += (_, _) =>
         {
+            ApplyNormalClientSize();
+
             if (_settings.StartMinimized)
             {
                 BeginInvoke(
@@ -454,6 +482,69 @@ public sealed partial class MainForm : Form
                     StartupService.IsEnabled();
             }
         };
+    }
+
+    // =========================================================
+    // Window sizing
+    // =========================================================
+
+    private void MainForm_Resize(
+        object? sender,
+        EventArgs e)
+    {
+        if (
+            WindowState !=
+            FormWindowState.Normal
+        )
+        {
+            return;
+        }
+
+        ApplyNormalClientSize();
+    }
+
+    private void ApplyNormalClientSize()
+    {
+        if (_isApplyingClientSize)
+        {
+            return;
+        }
+
+        if (
+            WindowState !=
+            FormWindowState.Normal
+        )
+        {
+            return;
+        }
+
+        var targetSize =
+            new Size(
+                _normalClientWidth,
+                _desiredClientHeight
+            );
+
+        if (
+            ClientSize ==
+            targetSize
+        )
+        {
+            return;
+        }
+
+        try
+        {
+            _isApplyingClientSize =
+                true;
+
+            ClientSize =
+                targetSize;
+        }
+        finally
+        {
+            _isApplyingClientSize =
+                false;
+        }
     }
 
     // =========================================================
@@ -807,11 +898,14 @@ public sealed partial class MainForm : Form
                 _statusLabel.Bottom
             );
 
-        ClientSize =
-            new Size(
-                ClientSize.Width,
-                contentBottom + 18
-            );
+        _desiredClientHeight =
+            contentBottom + 18;
+
+        // Never resize the actual window while Windows has it
+        // minimized. Updating ClientSize in the minimized state
+        // can corrupt the restore bounds and make the form reopen
+        // with a very small width.
+        ApplyNormalClientSize();
     }
 
     // =========================================================
@@ -835,6 +929,8 @@ public sealed partial class MainForm : Form
 
         WindowState =
             FormWindowState.Normal;
+
+        ApplyNormalClientSize();
 
         Activate();
 
