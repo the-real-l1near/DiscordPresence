@@ -162,13 +162,13 @@ Write-Host ""
 # Publish application
 # ============================================================
 
-Write-Host "[3/5] Publishing application..." `
+Write-Host "[3/5] Publishing framework-dependent application..." `
     -ForegroundColor Yellow
 
 dotnet publish $ProjectFile `
     -c Release `
     -r win-x64 `
-    --self-contained true
+    --self-contained false
 
 if ($LASTEXITCODE -ne 0)
 {

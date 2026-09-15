@@ -29,7 +29,7 @@ jobs:
           $tag = "${{ github.ref_name }}"
 
           if ($tag -notmatch '^v(\d+)\.(\d+)\.(\d+)$') {
-              throw "Release tag must use vMAJOR.MINOR.PATCH, for example v1.1.0. Got: $tag"
+              throw "Release tag must use vMAJOR.MINOR.PATCH, for example v1.3.0. Got: $tag"
           }
 
           $version = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
@@ -42,7 +42,7 @@ jobs:
 
       - name: Restore
         run: dotnet restore .\DiscordPresence.csproj
-        
+
       - name: Build Discord Social SDK bridge
         shell: pwsh
         run: |
@@ -70,8 +70,8 @@ jobs:
           if (-not (Test-Path $bridgePath)) {
               throw "DiscordSocialBridge.dll was not generated."
           }
-          
-      - name: Publish self-contained Windows x64 build
+
+      - name: Publish framework-dependent Windows x64 build
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
@@ -80,7 +80,7 @@ jobs:
           dotnet publish .\DiscordPresence.csproj `
             -c Release `
             -r win-x64 `
-            --self-contained true `
+            --self-contained false `
             --no-restore `
             -p:Version=$version `
             -p:AssemblyVersion=$fileVersion `

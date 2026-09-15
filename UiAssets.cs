@@ -1,20 +1,24 @@
-using SkiaSharp;
-using Svg.Skia;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Text.Json;
 
 namespace DiscordPresence;
 
 internal static class UiAssets
 {
     // =========================================================
-    // Paths
+    // Embedded resources
     // =========================================================
 
-    private static readonly string
-        IconsDirectory =
-            Path.Combine(
-                AppContext.BaseDirectory,
-                "Assets",
-                "Icons"
+    private const string
+        EmbeddedIconsResourceName =
+            "DiscordPresence.EmbeddedIcons.json";
+
+    private static readonly Lazy<
+        Dictionary<string, SortedDictionary<int, string>>>
+        EmbeddedIcons =
+            new(
+                LoadEmbeddedIcons
             );
 
     // =========================================================
@@ -25,7 +29,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "folder.svg",
+            "folder",
             size
         );
     }
@@ -34,7 +38,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "app.svg",
+            "app",
             size
         );
     }
@@ -43,7 +47,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "window.svg",
+            "window",
             size
         );
     }
@@ -52,7 +56,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "gamepad.svg",
+            "gamepad",
             size
         );
     }
@@ -61,7 +65,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "ban.svg",
+            "ban",
             size
         );
     }
@@ -74,7 +78,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "settings.svg",
+            "settings",
             size
         );
     }
@@ -83,7 +87,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "refresh.svg",
+            "refresh",
             size
         );
     }
@@ -92,7 +96,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "refresh-hover.svg",
+            "refresh-hover",
             size
         );
     }
@@ -101,7 +105,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "trash.svg",
+            "trash",
             size
         );
     }
@@ -110,7 +114,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "trash-hover.svg",
+            "trash-hover",
             size
         );
     }
@@ -119,7 +123,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "trash-outline.svg",
+            "trash-outline",
             size
         );
     }
@@ -128,7 +132,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "trash-outline-hover.svg",
+            "trash-outline-hover",
             size
         );
     }
@@ -141,7 +145,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "info.svg",
+            "info",
             size
         );
     }
@@ -150,7 +154,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "check.svg",
+            "check",
             size
         );
     }
@@ -159,7 +163,7 @@ internal static class UiAssets
         int size)
     {
         return Get(
-            "warning.svg",
+            "warning",
             size
         );
     }
@@ -169,7 +173,7 @@ internal static class UiAssets
     // =========================================================
 
     private static Image Get(
-        string fileName,
+        string iconName,
         int size)
     {
         if (size <= 0)
@@ -180,190 +184,63 @@ internal static class UiAssets
         }
 
         return AppCacheService.Shared.GetImage(
-            "svg:" +
-            fileName +
+            "embedded-png:" +
+            iconName +
             ":" +
             size,
 
             () =>
-                RenderSvg(
-                    fileName,
+                LoadEmbeddedPng(
+                    iconName,
                     size
                 )
         );
     }
 
     // =========================================================
-    // SVG rendering
+    // PNG loading
     // =========================================================
 
-    private static Image RenderSvg(
-        string fileName,
-        int size)
+    private static Image LoadEmbeddedPng(
+        string iconName,
+        int requestedSize)
     {
-        var path =
-            Path.Combine(
-                IconsDirectory,
-                fileName
-            );
-
-        if (!File.Exists(
-            path
-        ))
-        {
-            throw new FileNotFoundException(
-                $"SVG asset not found: {path}",
-                path
-            );
-        }
-
-        using var svg =
-            new SKSvg();
-
-        var picture =
-            svg.Load(
-                path
-            );
-
-        if (picture is null)
-        {
-            throw new InvalidOperationException(
-                $"Could not load SVG asset: {path}"
-            );
-        }
-
-        var bounds =
-            picture.CullRect;
+        var icons =
+            EmbeddedIcons.Value;
 
         if (
-            bounds.Width <= 0 ||
-            bounds.Height <= 0
+            !icons.TryGetValue(
+                iconName,
+                out var variants
+            ) ||
+            variants.Count ==
+            0
         )
         {
             throw new InvalidOperationException(
-                $"SVG asset has invalid bounds: {path}"
+                $"Embedded icon '{iconName}' was not generated. " +
+                "Run tools\\GenerateEmbeddedIcons.ps1 and rebuild."
             );
         }
 
-        // -----------------------------------------------------
-        // Preserve aspect ratio
-        // -----------------------------------------------------
-
-        var scaleX =
-            size /
-            bounds.Width;
-
-        var scaleY =
-            size /
-            bounds.Height;
-
-        var scale =
-            Math.Min(
-                scaleX,
-                scaleY
+        var sourceSize =
+            SelectSourceSize(
+                variants.Keys,
+                requestedSize
             );
 
-        var renderedWidth =
-            bounds.Width *
-            scale;
+        var base64 =
+            variants[sourceSize];
 
-        var renderedHeight =
-            bounds.Height *
-            scale;
-
-        var offsetX =
-            (
-                size -
-                renderedWidth
-            ) /
-            2f;
-
-        var offsetY =
-            (
-                size -
-                renderedHeight
-            ) /
-            2f;
-
-        // -----------------------------------------------------
-        // Render surface
-        // -----------------------------------------------------
-
-        var imageInfo =
-            new SKImageInfo(
-                size,
-                size,
-                SKColorType.Bgra8888,
-                SKAlphaType.Premul
+        var bytes =
+            Convert.FromBase64String(
+                base64
             );
-
-        using var surface =
-            SKSurface.Create(
-                imageInfo
-            );
-
-        if (surface is null)
-        {
-            throw new InvalidOperationException(
-                $"Could not create SVG render surface: {path}"
-            );
-        }
-
-        var canvas =
-            surface.Canvas;
-
-        canvas.Clear(
-            SKColors.Transparent
-        );
-
-        canvas.Save();
-
-        canvas.Translate(
-            offsetX,
-            offsetY
-        );
-
-        canvas.Scale(
-            scale,
-            scale
-        );
-
-        canvas.Translate(
-            -bounds.Left,
-            -bounds.Top
-        );
-
-        canvas.DrawPicture(
-            picture
-        );
-
-        canvas.Restore();
-
-        canvas.Flush();
-
-        // -----------------------------------------------------
-        // SKImage -> System.Drawing.Bitmap
-        // -----------------------------------------------------
-
-        using var skImage =
-            surface.Snapshot();
-
-        using var data =
-            skImage.Encode(
-                SKEncodedImageFormat.Png,
-                100
-            );
-
-        if (data is null)
-        {
-            throw new InvalidOperationException(
-                $"Could not encode SVG asset: {path}"
-            );
-        }
 
         using var stream =
             new MemoryStream(
-                data.ToArray()
+                bytes,
+                writable: false
             );
 
         using var source =
@@ -371,9 +248,211 @@ internal static class UiAssets
                 stream
             );
 
-        return new Bitmap(
-            source
+        if (
+            source.Width ==
+            requestedSize &&
+            source.Height ==
+            requestedSize
+        )
+        {
+            return new Bitmap(
+                source
+            );
+        }
+
+        return ResizeImage(
+            source,
+            requestedSize
         );
+    }
+
+    private static int SelectSourceSize(
+        IEnumerable<int> sizes,
+        int requestedSize)
+    {
+        var largest =
+            0;
+
+        foreach (
+            var size
+            in sizes
+        )
+        {
+            largest =
+                size;
+
+            if (
+                size >=
+                requestedSize
+            )
+            {
+                return size;
+            }
+        }
+
+        if (largest > 0)
+        {
+            return largest;
+        }
+
+        throw new InvalidOperationException(
+            "Embedded icon has no generated PNG sizes."
+        );
+    }
+
+    private static Image ResizeImage(
+        Image source,
+        int size)
+    {
+        var result =
+            new Bitmap(
+                size,
+                size,
+                PixelFormat.Format32bppPArgb
+            );
+
+        using var graphics =
+            Graphics.FromImage(
+                result
+            );
+
+        graphics.CompositingMode =
+            CompositingMode.SourceCopy;
+
+        graphics.CompositingQuality =
+            CompositingQuality.HighQuality;
+
+        graphics.InterpolationMode =
+            InterpolationMode.HighQualityBicubic;
+
+        graphics.SmoothingMode =
+            SmoothingMode.HighQuality;
+
+        graphics.PixelOffsetMode =
+            PixelOffsetMode.HighQuality;
+
+        graphics.DrawImage(
+            source,
+            new Rectangle(
+                0,
+                0,
+                size,
+                size
+            ),
+            0,
+            0,
+            source.Width,
+            source.Height,
+            GraphicsUnit.Pixel
+        );
+
+        return result;
+    }
+
+    // =========================================================
+    // Resource manifest
+    // =========================================================
+
+    private static Dictionary<
+        string,
+        SortedDictionary<int, string>>
+        LoadEmbeddedIcons()
+    {
+        var assembly =
+            typeof(UiAssets)
+                .Assembly;
+
+        using var stream =
+            assembly
+                .GetManifestResourceStream(
+                    EmbeddedIconsResourceName
+                );
+
+        if (stream is null)
+        {
+            throw new InvalidOperationException(
+                $"Embedded icon resource '{EmbeddedIconsResourceName}' was not found. " +
+                "Run tools\\GenerateEmbeddedIcons.ps1 and rebuild."
+            );
+        }
+
+        using var document =
+            JsonDocument.Parse(
+                stream
+            );
+
+        var result =
+            new Dictionary<
+                string,
+                SortedDictionary<int, string>>(
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+        foreach (
+            var iconProperty
+            in document.RootElement.EnumerateObject()
+        )
+        {
+            if (
+                iconProperty.Value.ValueKind !=
+                JsonValueKind.Object
+            )
+            {
+                continue;
+            }
+
+            var variants =
+                new SortedDictionary<
+                    int,
+                    string>();
+
+            foreach (
+                var sizeProperty
+                in iconProperty.Value.EnumerateObject()
+            )
+            {
+                if (
+                    !int.TryParse(
+                        sizeProperty.Name,
+                        out var size
+                    ) ||
+                    size <= 0 ||
+                    sizeProperty.Value.ValueKind !=
+                    JsonValueKind.String
+                )
+                {
+                    continue;
+                }
+
+                var base64 =
+                    sizeProperty.Value.GetString();
+
+                if (
+                    string.IsNullOrWhiteSpace(
+                        base64
+                    )
+                )
+                {
+                    continue;
+                }
+
+                variants[size] =
+                    base64;
+            }
+
+            if (
+                variants.Count >
+                0
+            )
+            {
+                result[
+                    iconProperty.Name
+                ] =
+                    variants;
+            }
+        }
+
+        return result;
     }
 
     // =========================================================
