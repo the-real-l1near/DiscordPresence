@@ -67,6 +67,9 @@ internal sealed class GameDetector
      * Đây chỉ là những process mình đủ chắc rằng
      * không nên bao giờ auto-detect thành game.
      *
+     * Supported applications are loaded from the public
+     * application database and checked separately below.
+     *
      * Unknown fullscreen app KHÔNG nằm đây sẽ thành
      * Suspected và user tự quyết định.
      */
@@ -86,12 +89,6 @@ internal sealed class GameDetector
                 "chrome",
                 "msedge",
                 "firefox",
-
-                // Supported development applications
-                "Code",
-                "idea64",
-                "blender",
-                "UnrealEditor",
 
                 // This application
                 "DiscordPresence"
@@ -195,6 +192,21 @@ internal sealed class GameDetector
             // -------------------------------------------------
 
             if (BuiltInExclusions.Contains(
+                processName
+            ))
+            {
+                return new GameDetectionResult(
+                    GameDetectionKind.NotGame,
+                    processName,
+                    windowTitle
+                );
+            }
+
+            // -------------------------------------------------
+            // Supported application database
+            // -------------------------------------------------
+
+            if (SupportedAppRegistry.IsKnownProcess(
                 processName
             ))
             {
