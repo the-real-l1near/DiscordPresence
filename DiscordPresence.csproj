@@ -71,6 +71,10 @@
     <None Remove="embedded-icons.json" />
     <EmbeddedResource Include="embedded-icons.json"
                       LogicalName="DiscordPresence.EmbeddedIcons.json" />
+
+    <None Remove="app-database.snapshot.json" />
+    <EmbeddedResource Include="app-database.snapshot.json"
+                      LogicalName="DiscordPresence.AppDatabaseSnapshot.json" />
   </ItemGroup>
 
   <!--
