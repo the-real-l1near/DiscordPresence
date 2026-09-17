@@ -38,8 +38,8 @@ internal sealed class AppDatabaseService
     // Load cache
     // =========================================================
 
-    public IReadOnlyDictionary<string, AppPresenceProfile>?
-        LoadCachedProfiles()
+    public IReadOnlyList<AppDatabaseEntry>?
+        LoadCachedEntries()
     {
         try
         {
@@ -51,7 +51,7 @@ internal sealed class AppDatabaseService
             var json =
                 File.ReadAllText(CachePath);
 
-            return ParseProfiles(json);
+            return ParseEntries(json);
         }
         catch
         {
@@ -63,8 +63,8 @@ internal sealed class AppDatabaseService
     // Refresh remote database
     // =========================================================
 
-    public async Task<IReadOnlyDictionary<string, AppPresenceProfile>?>
-        FetchLatestProfilesAsync()
+    public async Task<IReadOnlyList<AppDatabaseEntry>?>
+        FetchLatestEntriesAsync()
     {
         try
         {
@@ -82,17 +82,17 @@ internal sealed class AppDatabaseService
                 await response.Content
                     .ReadAsStringAsync();
 
-            var profiles =
-                ParseProfiles(json);
+            var entries =
+                ParseEntries(json);
 
-            if (profiles is null)
+            if (entries is null)
             {
                 return null;
             }
 
             await SaveCacheAsync(json);
 
-            return profiles;
+            return entries;
         }
         catch
         {
@@ -104,8 +104,8 @@ internal sealed class AppDatabaseService
     // Parse
     // =========================================================
 
-    private static IReadOnlyDictionary<string, AppPresenceProfile>?
-        ParseProfiles(
+    private static IReadOnlyList<AppDatabaseEntry>?
+        ParseEntries(
             string json)
     {
         try
@@ -121,6 +121,8 @@ internal sealed class AppDatabaseService
                     "schemaVersion",
                     out var schemaVersionElement
                 ) ||
+                schemaVersionElement.ValueKind !=
+                    JsonValueKind.Number ||
                 schemaVersionElement.GetInt32() !=
                     SupportedSchemaVersion ||
                 !root.TryGetProperty(
@@ -134,82 +136,24 @@ internal sealed class AppDatabaseService
                 return null;
             }
 
-            var candidates =
-                new Dictionary<
-                    string,
-                    (string AppId, AppPresenceProfile Profile)
-                >(
-                    StringComparer.OrdinalIgnoreCase
-                );
-
-            var ambiguousProcesses =
-                new HashSet<string>(
-                    StringComparer.OrdinalIgnoreCase
-                );
+            var entries =
+                new List<AppDatabaseEntry>();
 
             foreach (var appElement in
                 appsElement.EnumerateArray())
             {
-                if (!TryCreateProfile(
+                if (TryCreateEntry(
                     appElement,
-                    out var appId,
-                    out var profile,
-                    out var processNames
+                    out var entry
                 ))
                 {
-                    continue;
-                }
-
-                foreach (var processName in
-                    processNames)
-                {
-                    if (ambiguousProcesses.Contains(
-                        processName
-                    ))
-                    {
-                        continue;
-                    }
-
-                    if (candidates.TryGetValue(
-                        processName,
-                        out var existing
-                    ))
-                    {
-                        if (string.Equals(
-                            existing.AppId,
-                            appId,
-                            StringComparison.OrdinalIgnoreCase
-                        ))
-                        {
-                            continue;
-                        }
-
-                        candidates.Remove(
-                            processName
-                        );
-
-                        ambiguousProcesses.Add(
-                            processName
-                        );
-
-                        continue;
-                    }
-
-                    candidates[processName] =
-                        (appId, profile);
+                    entries.Add(entry);
                 }
             }
 
-            if (candidates.Count == 0)
-            {
-                return null;
-            }
-
-            return candidates.ToDictionary(
-                pair => pair.Key,
-                pair => pair.Value.Profile,
-                StringComparer.OrdinalIgnoreCase
-            );
+            return entries.Count > 0
+                ? entries
+                : null;
         }
         catch
         {
@@ -217,28 +161,18 @@ internal sealed class AppDatabaseService
         }
     }
 
-    private static bool TryCreateProfile(
+    private static bool TryCreateEntry(
         JsonElement appElement,
-        out string appId,
-        out AppPresenceProfile profile,
-        out HashSet<string> processNames)
+        out AppDatabaseEntry entry)
     {
-        appId =
-            string.Empty;
-
-        profile =
+        entry =
             null!;
-
-        processNames =
-            new HashSet<string>(
-                StringComparer.OrdinalIgnoreCase
-            );
 
         if (
             !TryGetRequiredString(
                 appElement,
                 "id",
-                out appId
+                out var appId
             ) ||
             !TryGetRequiredString(
                 appElement,
@@ -255,6 +189,8 @@ internal sealed class AppDatabaseService
                 "presence",
                 out var presenceElement
             ) ||
+            presenceElement.ValueKind !=
+                JsonValueKind.Object ||
             !TryGetRequiredString(
                 presenceElement,
                 "largeImage",
@@ -278,31 +214,62 @@ internal sealed class AppDatabaseService
             return false;
         }
 
+        var rules =
+            new List<AppMatchRule>();
+
         foreach (var ruleElement in
             matchElement.EnumerateArray())
         {
-            if (TryGetRequiredString(
+            if (ruleElement.ValueKind !=
+                JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (!TryGetRequiredString(
                 ruleElement,
                 "processName",
                 out var processName
             ))
             {
-                processNames.Add(
-                    processName
-                );
+                continue;
             }
+
+            TryGetOptionalString(
+                ruleElement,
+                "productName",
+                out var productName
+            );
+
+            TryGetOptionalString(
+                ruleElement,
+                "originalFilename",
+                out var originalFilename
+            );
+
+            rules.Add(
+                new AppMatchRule(
+                    processName,
+                    productName,
+                    originalFilename
+                )
+            );
         }
 
-        if (processNames.Count == 0)
+        if (rules.Count == 0)
         {
             return false;
         }
 
-        profile =
-            new AppPresenceProfile(
-                displayName,
-                largeImage,
-                displayName
+        entry =
+            new AppDatabaseEntry(
+                appId,
+                new AppPresenceProfile(
+                    displayName,
+                    largeImage,
+                    displayName
+                ),
+                rules
             );
 
         return true;
@@ -335,6 +302,45 @@ internal sealed class AppDatabaseService
         return !string.IsNullOrWhiteSpace(
             value
         );
+    }
+
+    private static bool TryGetOptionalString(
+        JsonElement element,
+        string propertyName,
+        out string? value)
+    {
+        value =
+            null;
+
+        if (!element.TryGetProperty(
+            propertyName,
+            out var propertyElement
+        ))
+        {
+            return true;
+        }
+
+        if (propertyElement.ValueKind ==
+            JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            return false;
+        }
+
+        var parsed =
+            propertyElement.GetString()?.Trim();
+
+        value =
+            string.IsNullOrWhiteSpace(parsed)
+                ? null
+                : parsed;
+
+        return true;
     }
 
     // =========================================================
