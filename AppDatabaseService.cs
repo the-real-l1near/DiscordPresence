@@ -1,3 +1,4 @@
+using System.Net.NetworkInformation;
 using System.Text.Json;
 
 namespace DiscordPresence;
@@ -19,6 +20,14 @@ internal sealed class AppDatabaseService
         {
             Timeout = TimeSpan.FromSeconds(5)
         };
+
+    private static readonly TimeSpan[] RetryDelays =
+    [
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromMinutes(1),
+        TimeSpan.FromMinutes(2),
+        TimeSpan.FromMinutes(5)
+    ];
 
     // =========================================================
     // Cache
@@ -66,6 +75,99 @@ internal sealed class AppDatabaseService
     public async Task<IReadOnlyList<AppDatabaseEntry>?>
         FetchLatestEntriesAsync()
     {
+        var networkAvailableSignal =
+            CreateNetworkAvailableSignal();
+
+        void HandleNetworkAvailabilityChanged(
+            object? sender,
+            NetworkAvailabilityEventArgs args)
+        {
+            if (!args.IsAvailable)
+            {
+                return;
+            }
+
+            networkAvailableSignal.TrySetResult(
+                true
+            );
+        }
+
+        NetworkChange.NetworkAvailabilityChanged +=
+            HandleNetworkAvailabilityChanged;
+
+        try
+        {
+            var retryIndex =
+                0;
+
+            while (true)
+            {
+                var entries =
+                    await TryFetchLatestEntriesAsync();
+
+                if (entries is not null)
+                {
+                    return entries;
+                }
+
+                if (!NetworkInterface.GetIsNetworkAvailable())
+                {
+                    await networkAvailableSignal.Task;
+
+                    networkAvailableSignal =
+                        CreateNetworkAvailableSignal();
+
+                    retryIndex =
+                        0;
+
+                    continue;
+                }
+
+                var delay =
+                    RetryDelays[
+                        Math.Min(
+                            retryIndex,
+                            RetryDelays.Length - 1
+                        )
+                    ];
+
+                if (retryIndex <
+                    RetryDelays.Length - 1)
+                {
+                    retryIndex++;
+                }
+
+                var networkTask =
+                    networkAvailableSignal.Task;
+
+                var delayTask =
+                    Task.Delay(delay);
+
+                await Task.WhenAny(
+                    networkTask,
+                    delayTask
+                );
+
+                if (networkTask.IsCompleted)
+                {
+                    networkAvailableSignal =
+                        CreateNetworkAvailableSignal();
+
+                    retryIndex =
+                        0;
+                }
+            }
+        }
+        finally
+        {
+            NetworkChange.NetworkAvailabilityChanged -=
+                HandleNetworkAvailabilityChanged;
+        }
+    }
+
+    private static async Task<IReadOnlyList<AppDatabaseEntry>?>
+        TryFetchLatestEntriesAsync()
+    {
         try
         {
             using var response =
@@ -98,6 +200,14 @@ internal sealed class AppDatabaseService
         {
             return null;
         }
+    }
+
+    private static TaskCompletionSource<bool>
+        CreateNetworkAvailableSignal()
+    {
+        return new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
     }
 
     // =========================================================
