@@ -17,6 +17,7 @@ internal sealed class SupportedAppRegistry
         IReadOnlyList<AppDatabaseEntry>
     > _appsByProcess =
         BuildIndex(
+            Database.LoadEmbeddedEntries() ??
             CreateFallbackEntries()
         );
 
@@ -510,7 +511,7 @@ internal sealed class SupportedAppRegistry
     }
 
     // =========================================================
-    // Embedded fallback
+    // Emergency fallback
     // =========================================================
 
     private static IReadOnlyList<AppDatabaseEntry>
