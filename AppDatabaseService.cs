@@ -12,6 +12,9 @@ internal sealed class AppDatabaseService
     private const string DatabaseUrl =
         "https://raw.githubusercontent.com/the-real-l1near/DiscordPresence-AppDatabase/main/database.json";
 
+    private const string EmbeddedDatabaseResourceName =
+        "DiscordPresence.AppDatabaseSnapshot.json";
+
     private const int SupportedSchemaVersion =
         1;
 
@@ -42,6 +45,41 @@ internal sealed class AppDatabaseService
             "Cache",
             "app-database.json"
         );
+
+    // =========================================================
+    // Load embedded snapshot
+    // =========================================================
+
+    public IReadOnlyList<AppDatabaseEntry>?
+        LoadEmbeddedEntries()
+    {
+        try
+        {
+            using var stream =
+                typeof(AppDatabaseService)
+                    .Assembly
+                    .GetManifestResourceStream(
+                        EmbeddedDatabaseResourceName
+                    );
+
+            if (stream is null)
+            {
+                return null;
+            }
+
+            using var reader =
+                new StreamReader(stream);
+
+            var json =
+                reader.ReadToEnd();
+
+            return ParseEntries(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     // =========================================================
     // Load cache
