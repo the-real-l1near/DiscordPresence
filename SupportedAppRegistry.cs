@@ -12,7 +12,7 @@ internal sealed class SupportedAppRegistry
         Database =
             new();
 
-    private static IReadOnlyDictionary<
+    private static volatile IReadOnlyDictionary<
         string,
         IReadOnlyList<AppDatabaseEntry>
     > _appsByProcess =
@@ -116,6 +116,9 @@ internal sealed class SupportedAppRegistry
     {
         EnsureInitialized();
 
+        var appsByProcess =
+            _appsByProcess;
+
         Process[] processes;
 
         try
@@ -134,7 +137,7 @@ internal sealed class SupportedAppRegistry
             {
                 try
                 {
-                    if (!_appsByProcess.ContainsKey(
+                    if (!appsByProcess.ContainsKey(
                         process.ProcessName
                     ))
                     {
@@ -149,6 +152,7 @@ internal sealed class SupportedAppRegistry
 
                     if (TryResolveProcess(
                         process,
+                        appsByProcess,
                         out _
                     ))
                     {
@@ -178,7 +182,10 @@ internal sealed class SupportedAppRegistry
         profile =
             null!;
 
-        if (!_appsByProcess.ContainsKey(
+        var appsByProcess =
+            _appsByProcess;
+
+        if (!appsByProcess.ContainsKey(
             processName
         ))
         {
@@ -211,6 +218,7 @@ internal sealed class SupportedAppRegistry
             {
                 if (!TryResolveProcess(
                     process,
+                    appsByProcess,
                     out var result
                 ))
                 {
@@ -259,6 +267,10 @@ internal sealed class SupportedAppRegistry
 
     private static bool TryResolveProcess(
         Process process,
+        IReadOnlyDictionary<
+            string,
+            IReadOnlyList<AppDatabaseEntry>
+        > appsByProcess,
         out AppDatabaseEntry entry)
     {
         entry =
@@ -276,7 +288,7 @@ internal sealed class SupportedAppRegistry
             return false;
         }
 
-        if (!_appsByProcess.TryGetValue(
+        if (!appsByProcess.TryGetValue(
             processName,
             out var candidates
         ))

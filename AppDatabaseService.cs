@@ -139,16 +139,30 @@ internal sealed class AppDatabaseService
             var entries =
                 new List<AppDatabaseEntry>();
 
+            var appIds =
+                new HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase
+                );
+
             foreach (var appElement in
                 appsElement.EnumerateArray())
             {
-                if (TryCreateEntry(
+                if (!TryCreateEntry(
                     appElement,
                     out var entry
                 ))
                 {
-                    entries.Add(entry);
+                    return null;
                 }
+
+                if (!appIds.Add(
+                    entry.Id
+                ))
+                {
+                    return null;
+                }
+
+                entries.Add(entry);
             }
 
             return entries.Count > 0
@@ -169,6 +183,8 @@ internal sealed class AppDatabaseService
             null!;
 
         if (
+            appElement.ValueKind !=
+                JsonValueKind.Object ||
             !TryGetRequiredString(
                 appElement,
                 "id",
@@ -220,32 +236,28 @@ internal sealed class AppDatabaseService
         foreach (var ruleElement in
             matchElement.EnumerateArray())
         {
-            if (ruleElement.ValueKind !=
-                JsonValueKind.Object)
+            if (
+                ruleElement.ValueKind !=
+                    JsonValueKind.Object ||
+                !TryGetRequiredString(
+                    ruleElement,
+                    "processName",
+                    out var processName
+                ) ||
+                !TryGetOptionalString(
+                    ruleElement,
+                    "productName",
+                    out var productName
+                ) ||
+                !TryGetOptionalString(
+                    ruleElement,
+                    "originalFilename",
+                    out var originalFilename
+                )
+            )
             {
-                continue;
+                return false;
             }
-
-            if (!TryGetRequiredString(
-                ruleElement,
-                "processName",
-                out var processName
-            ))
-            {
-                continue;
-            }
-
-            TryGetOptionalString(
-                ruleElement,
-                "productName",
-                out var productName
-            );
-
-            TryGetOptionalString(
-                ruleElement,
-                "originalFilename",
-                out var originalFilename
-            );
 
             rules.Add(
                 new AppMatchRule(
@@ -335,10 +347,15 @@ internal sealed class AppDatabaseService
         var parsed =
             propertyElement.GetString()?.Trim();
 
+        if (string.IsNullOrWhiteSpace(
+            parsed
+        ))
+        {
+            return false;
+        }
+
         value =
-            string.IsNullOrWhiteSpace(parsed)
-                ? null
-                : parsed;
+            parsed;
 
         return true;
     }
